@@ -129,3 +129,16 @@ class CommandsCog(commands.Cog):
     )
     async def source(self, ctx: discord.ApplicationContext):
         await ctx.respond("You can find my source code here: https://github.com/Ahsoka/clovis")
+
+    @commands.Cog.listener()
+    async def on_application_command_error(
+        self,
+        ctx: discord.ApplicationContext,
+        error: discord.ApplicationCommandInvokeError
+    ):
+        if isinstance(error.original, commands.MissingPermissions):
+            await ctx.respond("You do not have permission to use this command.")
+        elif isinstance(error.original, commands.NoPrivateMessage):
+            await ctx.respond("This command is not available in DM messages.")
+        else:
+            await ctx.respond("Uh oh! Something went wrong on our end. Please try again later!")
