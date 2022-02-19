@@ -117,5 +117,30 @@ async def on_member_join(member: discord.Member):
                 )
 
 @bot.event
+async def on_guild_role_update(before: discord.Role, after: discord.Role):
+    if after.is_bot_managed() and after in after.guild.me.roles:
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, after.guild.id)
+            if not after.permissions.administrator and sql_guild.message_error:
+                logger.warning("Someone accidentally removed the bot's admin permission.")
+                if after.guild.owner:
+                    await after.guild.owner.send(
+                        "Uh oh! Someone accidentally removed my admin permission! "
+                        "I can no longer create new private channels until this permission "
+                        "is restored."
+                    )
+                    sql_guild.message_error = False
+                    logger.info("The owner was notified about the missing permission.")
+            elif not before.permissions.administrator and after.permissions.administrator:
+                logger.info("The bot's admin permission has been restored.")
+                sql_guild.message_error = True
+                if after.guild.owner:
+                    await after.guild.owner.send(
+                        "My admin permission has been restored and I will now continue to "
+                        "create new private channels."
+                    )
+                    logger.info("The owner was notified about the correction to the bot's role.")
+
+@bot.event
 async def on_error(event: str, *args, **kwargs):
     logger.error(f"The following error occured with the {event} event:", exc_info=sys.exc_info())
