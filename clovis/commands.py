@@ -91,3 +91,18 @@ class CommandsCog(commands.Cog):
             else:
                 sql_guild.create_channel = True
                 await ctx.respond("I will now start creating new text channels when new members join.")
+
+    async def listening(
+        self,
+        ctx: discord.ApplicationContext,
+        action: bool,
+        message: str,
+        alt_message: str
+    ):
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, ctx.guild_id)
+            if action is sql_guild.create_channel:
+                await ctx.respond(alt_message)
+            else:
+                sql_guild.create_channel = action
+                await ctx.respond(message)
