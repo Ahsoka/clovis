@@ -45,10 +45,8 @@ class CommandsCog(commands.Cog):
     )
     @commands.has_guild_permissions(administrator=True)
     async def set_category(self, ctx: discord.ApplicationContext, channel: discord.CategoryChannel):
-        # NOTE: Still need to do more testing to determine which combination
-        # of permissions will always guarantee that the bot will be able to
-        # create the given channel in the category.
-        if channel.permissions_for(ctx.me).manage_channels:
+        # NOTE: Must have the admin permission to be able to create private channels
+        if ctx.me.guild_permissions.administrator:
             async with sessionmaker.begin() as session:
                 sql_guild = await Guild.get_or_create(session, ctx.guild_id)
                 sql_guild.category_id = channel.id
@@ -57,12 +55,13 @@ class CommandsCog(commands.Cog):
             logger.info(f"{ctx.author} used the /set category command to set the category to {channel}.")
         else:
             await ctx.respond(
-                "I don't have access to create channels in this category. "
-                "Please give me access, before setting it as the category."
+                "Uh oh! I don't have the admin permission! "
+                "Please give me the admin permission in order to "
+                "set a category to create private channels in."
             )
             logger.info(
                 f"{ctx.author} tried to use the /set category command "
-                "but selected a category that that bot does not have access to."
+                "but the bot did not have the admin permission."
             )
 
     @get_commands.command(
