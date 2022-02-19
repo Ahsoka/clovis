@@ -75,27 +75,46 @@ async def on_guild_join(guild: discord.Guild):
 @bot.event
 async def on_member_join(member: discord.Member):
     if not member.bot:
+        failed_log = False
         logger.debug(f"{member} joined the server.")
         async with sessionmaker.begin() as session:
             sql_guild = await Guild.get_or_create(session, member.guild.id)
-            if sql_guild.listen:
-                category = await hardened_fetch_channel(sql_guild.category_id, member.guild)
-                await member.guild.create_text_channel(
-                    member.display_name,
-                    category=category,
-                    overwrites={
-                        member.guild.default_role: discord.PermissionOverwrite.from_pair(
-                            discord.Permissions.none(),
-                            discord.Permissions.all()
-                        ),
-                        member: discord.PermissionOverwrite(
-                            view_channel=True,
-                            read_message_history=True,
-                            send_messages=True
-                        )
-                    }
+            if member.guild.me.guild_permissions.administrator:
+                if sql_guild.listen:
+                    category = await hardened_fetch_channel(sql_guild.category_id, member.guild)
+                    await member.guild.create_text_channel(
+                        member.display_name,
+                        category=category,
+                        overwrites={
+                            member.guild.default_role: discord.PermissionOverwrite.from_pair(
+                                discord.Permissions.none(),
+                                discord.Permissions.all()
+                            ),
+                            member: discord.PermissionOverwrite(
+                                view_channel=True,
+                                read_message_history=True,
+                                send_messages=True
+                            )
+                        }
+                    )
+                    logger.info(f"{member}'s private channel was successfully created!")
+            elif sql_guild.message_error:
+                if member.guild.owner:
+                    await member.guild.owner.send(
+                        "Uh oh! Someone accidentally removed my admin permission! "
+                        "I can no longer create new private channels until this permission "
+                        "is restored."
+                    )
+                    sql_guild.message_error = False
+                failed_log = True
+            else:
+                failed_log = True
+
+            if failed_log:
+                logger.warning(
+                    f"The bot failed to make a private channel for {member} "
+                    "due to permission errors."
                 )
-                logger.info(f"{member}'s private channel was successfully created!")
 
 @bot.event
 async def on_error(event: str, *args, **kwargs):
