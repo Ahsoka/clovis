@@ -23,6 +23,11 @@ class CommandsCog(commands.Cog):
         "Commands used to start some automated action of the bot."
     )
 
+    stop_commands = discord.SlashCommandGroup(
+        'stop',
+        "Commands used to stop some automated action of the bot."
+    )
+
     @set_commands.command(
         name='category',
         description="Use this command to set the category in which new channels will be created in.",
@@ -89,6 +94,19 @@ class CommandsCog(commands.Cog):
             action=True,
             message="I will now start creating new text channels when new members join.",
             alt_message="I am already listening for messages!"
+        )
+
+    @stop_commands.command(
+        name='listening',
+        description="Use this command to make me stop listening for new members joining."
+    )
+    @commands.has_guild_permissions(administrator=True)
+    async def stop_listening(self, ctx: discord.ApplicationContext):
+        await self.listening(
+            ctx=ctx,
+            action=False,
+            message="I will no longer create new text channels when new members join.",
+            alt_message="I am already not listening for messages!"
         )
 
     async def listening(
