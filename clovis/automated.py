@@ -20,39 +20,57 @@ async def on_ready():
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
-    logger_message = f"The bot joined the '{guild}' server"
-    async with sessionmaker.begin() as session:
-        # NOTE: SQLAlchemy doesn't really have typing so
-        # we have to add it ourselves like this :/
-        session: AsyncSession = session
+    if not guild.me.guild_permissions.administrator:
+        message = f"The bot immediately left the '{guild}' server due to a lack of permissions."
+        if guild.owner:
+            await guild.owner.send(
+                "Thank you for inviting me but my stay was short lived "
+                "due to a lack of permissions. In order to function properly "
+                "I need the admin permission. Please invite me back using this "
+                "link which will give me the admin permissions: "
+                + discord.utils.oauth_url(
+                    bot.user.id,
+                    permissions=discord.Permissions(administrator=True),
+                    scopes=('bot', 'applications.commands')
+                )
+            )
+            message += " And messaged the owner about the issue."
+        await guild.leave()
+        logger.info(message)
+    else:
+        logger_message = f"The bot joined the '{guild}' server"
+        async with sessionmaker.begin() as session:
+            # NOTE: SQLAlchemy doesn't really have typing so
+            # we have to add it ourselves like this :/
+            session: AsyncSession = session
 
-        message = "Thank you for inviting me{} to the server! "
-        if sql_guild := await session.get(Guild, guild.id):
-            logger.info(f"{logger_message} which it was previously in.")
-            sql_guild: Guild = sql_guild
-            if guild.owner:
-                message = message.format(' back')
-                category = await hardened_fetch_channel(sql_guild.category_id, guild, None)
-                if category:
-                    message += f"I currently have {category.mention} as the selected category."
-                else:
-                    message += (
-                        "The previously set category no longer exists. "
-                        "Please set a new one with the `/set category` command"
-                    )
-        else:
-            logger.info(f"{logger_message}.")
-            last_message_id = None
-            if guild.system_channel and guild.system_channel_flags.join_notifications:
-                last_message_id = guild.system_channel.last_message_id
-            sql_guild = Guild(id=guild.id, last_message_id=last_message_id)
-            message = message.format('')
-            session.add(sql_guild)
-            message += "Please set a category to create new channels in with the `/set category` command."
+            message = "Thank you for inviting me{} to the server! "
+            if sql_guild := await session.get(Guild, guild.id):
+                logger.info(f"{logger_message} which it was previously in.")
+                sql_guild: Guild = sql_guild
+                if guild.owner:
+                    message = message.format(' back')
+                    category = await hardened_fetch_channel(sql_guild.category_id, guild, None)
+                    if category:
+                        message += f"I currently have {category.mention} as the selected category."
+                    else:
+                        message += (
+                            "The previously set category no longer exists. "
+                            "Please set a new one with the `/set category` command"
+                        )
+            else:
+                logger.info(f"{logger_message}.")
+                last_message_id = None
+                if guild.system_channel and guild.system_channel_flags.join_notifications:
+                    last_message_id = guild.system_channel.last_message_id
+                sql_guild = Guild(id=guild.id, last_message_id=last_message_id)
+                message = message.format('')
+                session.add(sql_guild)
+                message += "Please set a category to create new channels in with the `/set category` command."
 
-    if guild.owner:
-        await guild.owner.send(message)
-        logger.info('The owner was notified about the bot joining.')
+        if guild.owner:
+            await guild.owner.send(message)
+            logger.info('The owner was notified about the bot joining.')
 
 @bot.event
 async def on_member_join(member: discord.Member):
