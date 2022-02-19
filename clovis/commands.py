@@ -84,13 +84,12 @@ class CommandsCog(commands.Cog):
     )
     @commands.has_guild_permissions(administrator=True)
     async def start_listening(self, ctx: discord.ApplicationContext):
-        async with sessionmaker.begin() as session:
-            sql_guild = await Guild.get_or_create(session, ctx.guild_id)
-            if sql_guild.create_channel:
-                await ctx.respond("I am already listening for messages!")
-            else:
-                sql_guild.create_channel = True
-                await ctx.respond("I will now start creating new text channels when new members join.")
+        await self.listening(
+            ctx=ctx,
+            action=True,
+            message="I will now start creating new text channels when new members join.",
+            alt_message="I am already listening for messages!"
+        )
 
     async def listening(
         self,
