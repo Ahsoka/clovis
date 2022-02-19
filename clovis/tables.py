@@ -21,3 +21,7 @@ class Guild:
     last_message_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     create_channel: bool = field(default=True, metadata={'sa': Column(Boolean, nullable=False)})
     message_error: bool = field(default=False, metadata={'sa': Column(Boolean, nullable=False)})
+
+    @property
+    def listen(self):
+        return self.category_id and self.create_channel
