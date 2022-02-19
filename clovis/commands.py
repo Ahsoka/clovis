@@ -18,6 +18,11 @@ class CommandsCog(commands.Cog):
         "Commands used to get various information about the bot."
     )
 
+    start_commands = discord.SlashCommandGroup(
+        'start',
+        "Commands used to start some automated action of the bot."
+    )
+
     @set_commands.command(
         name='category',
         description="Use this command to set the category in which new channels will be created in.",
@@ -72,3 +77,17 @@ class CommandsCog(commands.Cog):
                     )
                 sql_guild.category_id = None
         await ctx.respond(message)
+
+    @start_commands.command(
+        name='listening',
+        description="Use this command to make me start listening for new members joining."
+    )
+    @commands.has_guild_permissions(administrator=True)
+    async def start_listening(self, ctx: discord.ApplicationContext):
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, ctx.guild_id)
+            if sql_guild.create_channel:
+                await ctx.respond("I am already listening for messages!")
+            else:
+                sql_guild.create_channel = True
+                await ctx.respond("I will now start creating new text channels when new members join.")
