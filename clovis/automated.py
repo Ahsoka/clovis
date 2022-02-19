@@ -46,3 +46,26 @@ async def on_guild_join(guild: discord.Guild):
 
     if guild.owner:
         await guild.owner.send(message)
+
+@bot.event
+async def on_member_join(member: discord.Member):
+    if not member.bot:
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, member.guild.id)
+            if sql_guild.listen:
+                category = await hardened_fetch_channel(sql_guild.category_id, member.guild)
+                await member.guild.create_text_channel(
+                    member.display_name,
+                    category=category,
+                    overwrites={
+                        member.guild.default_role: discord.PermissionOverwrite.from_pair(
+                            discord.Permissions.none(),
+                            discord.Permissions.all()
+                        ),
+                        member: discord.PermissionOverwrite(
+                            view_channel=True,
+                            read_message_history=True,
+                            send_messages=True
+                        )
+                    }
+                )
