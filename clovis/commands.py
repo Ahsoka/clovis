@@ -123,3 +123,9 @@ class CommandsCog(commands.Cog):
             else:
                 sql_guild.create_channel = action
                 await ctx.respond(message)
+
+    @commands.slash_command(
+        description="Use this command to get my source code!"
+    )
+    async def source(self, ctx: discord.ApplicationContext):
+        await ctx.respond("You can find my source code here: https://github.com/Ahsoka/clovis")
