@@ -59,7 +59,7 @@ class CommandsCog(commands.Cog):
                 "Please give me the admin permission in order to "
                 "set a category to create private channels in."
             )
-            logger.info(
+            logger.warning(
                 f"{ctx.author} tried to use the /set category command "
                 "but the bot did not have the admin permission."
             )
