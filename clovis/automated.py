@@ -1,18 +1,22 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .utils import hardened_fetch_channel
-from . import engine, sessionmaker
+from . import sessionmaker, engine
 from .tables import Guild, mapper
 from sqlalchemy import text
 from .bot import bot
 
 import discord
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
 
 @bot.event
 async def on_ready():
     async with engine.begin() as conn:
         await conn.execute(text('PRAGMA foreign_keys=ON'))
         await conn.run_sync(mapper.metadata.create_all)
-    print(f"{bot.user} is ready!")
+    logger.info(f"{bot.user} is ready!")
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
@@ -24,6 +28,7 @@ async def on_guild_join(guild: discord.Guild):
 
         message = "Thank you for inviting me{} to the server! "
         if sql_guild := await session.get(Guild, guild.id):
+            logger.info(f"{logger_message} which it was previously in.")
             sql_guild: Guild = sql_guild
             if guild.owner:
                 message = message.format(' back')
@@ -36,6 +41,7 @@ async def on_guild_join(guild: discord.Guild):
                         "Please set a new one with the `/set category` command"
                     )
         else:
+            logger.info(f"{logger_message}.")
             last_message_id = None
             if guild.system_channel and guild.system_channel_flags.join_notifications:
                 last_message_id = guild.system_channel.last_message_id
@@ -46,10 +52,12 @@ async def on_guild_join(guild: discord.Guild):
 
     if guild.owner:
         await guild.owner.send(message)
+        logger.info('The owner was notified about the bot joining.')
 
 @bot.event
 async def on_member_join(member: discord.Member):
     if not member.bot:
+        logger.debug(f"{member} joined the server.")
         async with sessionmaker.begin() as session:
             sql_guild = await Guild.get_or_create(session, member.guild.id)
             if sql_guild.listen:
@@ -69,3 +77,8 @@ async def on_member_join(member: discord.Member):
                         )
                     }
                 )
+                logger.info(f"{member}'s private channel was successfully created!")
+
+@bot.event
+async def on_error(event: str, *args, **kwargs):
+    logger.error(f"The following error occured with the {event} event:", exc_info=sys.exc_info())
