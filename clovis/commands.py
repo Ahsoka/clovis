@@ -160,5 +160,6 @@ class CommandsCog(commands.Cog):
             )
             await ctx.respond("This command is not available in DM messages.")
         else:
+            # NOTE: In this case you may want to add ping_dev function like with the bdaybot
             logger.error("The following error occured with the bot:", exc_info=error)
             await ctx.respond("Uh oh! Something went wrong on our end. Please try again later!")
