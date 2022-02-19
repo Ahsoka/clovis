@@ -5,6 +5,9 @@ from . import sessionmaker
 from .tables import Guild
 
 import discord
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CommandsCog(commands.Cog):
@@ -51,10 +54,15 @@ class CommandsCog(commands.Cog):
                 sql_guild.category_id = channel.id
                 sql_guild.create_channel = True
             await ctx.respond(f"{channel.mention} has been set as the new category to create private channels in.")
+            logger.info(f"{ctx.author} used the /set category command to set the category to {channel}.")
         else:
             await ctx.respond(
                 "I don't have access to create channels in this category. "
                 "Please give me access, before setting it as the category."
+            )
+            logger.info(
+                f"{ctx.author} tried to use the /set category command "
+                "but selected a category that that bot does not have access to."
             )
 
     @get_commands.command(
@@ -82,6 +90,7 @@ class CommandsCog(commands.Cog):
                     )
                 sql_guild.category_id = None
         await ctx.respond(message)
+        logger.info(f"{ctx.author} used the /get category command.")
 
     @start_commands.command(
         name='listening',
@@ -95,6 +104,7 @@ class CommandsCog(commands.Cog):
             message="I will now start creating new text channels when new members join.",
             alt_message="I am already listening for messages!"
         )
+        logger.info(f"{ctx.author} used the /start listening command.")
 
     @stop_commands.command(
         name='listening',
@@ -108,6 +118,7 @@ class CommandsCog(commands.Cog):
             message="I will no longer create new text channels when new members join.",
             alt_message="I am already not listening for messages!"
         )
+        logger.info(f"{ctx.author} used the /stop listening command.")
 
     async def listening(
         self,
@@ -129,6 +140,7 @@ class CommandsCog(commands.Cog):
     )
     async def source(self, ctx: discord.ApplicationContext):
         await ctx.respond("You can find my source code here: https://github.com/Ahsoka/clovis")
+        logger.info(f"{ctx.author} used the /source command.")
 
     @commands.Cog.listener()
     async def on_application_command_error(
@@ -137,8 +149,16 @@ class CommandsCog(commands.Cog):
         error: discord.ApplicationCommandInvokeError
     ):
         if isinstance(error.original, commands.MissingPermissions):
+            logger.info(
+                f"{ctx.author} tried to use the /{ctx.command.qualified_name} "
+                "even though they don't have permission to do so."
+            )
             await ctx.respond("You do not have permission to use this command.")
         elif isinstance(error.original, commands.NoPrivateMessage):
+            logger.info(
+                f"{ctx.author} tried to use the /{ctx.command.qualified_name} in a DM."
+            )
             await ctx.respond("This command is not available in DM messages.")
         else:
+            logger.error("The following error occured with the bot:", exc_info=error)
             await ctx.respond("Uh oh! Something went wrong on our end. Please try again later!")
