@@ -24,7 +24,14 @@ class MissingCategoryChannel(discord.DiscordException):
 
 
 class TimeZoneConverter(Converter):
-    pass
+    async def convert(self, ctx: discord.ApplicationContext, argument: str):
+        for timezone, series in load_timezones().items():
+            if not (filtered := series[series.isin([argument.lower()])]).empty:
+                timezone_str = f"{timezone.capitalize()}/{filtered.iloc[0].replace(' ', '_').title()}"
+                return tz.gettz(timezone_str)
+        bad_argument = BadArgument(f"'{argument}' is not a valid timezone.")
+        bad_argument.bad_argument = argument
+        raise bad_argument
 
 sentinel = object()
 
