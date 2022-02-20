@@ -1,4 +1,6 @@
+from discord.ext.commands import Converter, BadArgument
 from typing import Dict
+from dateutil import tz
 
 import functools
 import discord
@@ -18,6 +20,10 @@ if not hasattr(functools, 'cache'):
 
 
 class MissingCategoryChannel(discord.DiscordException):
+    pass
+
+
+class TimeZoneConverter(Converter):
     pass
 
 sentinel = object()
