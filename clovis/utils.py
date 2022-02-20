@@ -72,3 +72,21 @@ def load_timezones():
             "The bot failed to detect the timezones.json file, "
             "autocomplete will be disabled."
         )
+
+async def autocomplete_timezones(ctx: discord.AutocompleteContext):
+    timezones = load_timezones()
+    starting = []
+    for full_timezone in timezones:
+        timezone = full_timezone
+        if '/' in timezone:
+            timezone = timezone.split('/')[-1]
+        if timezone.startswith(ctx.value.lower()):
+            starting += timezones[full_timezone].str.title().to_list()
+
+    if starting:
+        return starting
+
+    for series in timezones.values():
+        starting += series[series.str.startswith(ctx.value.lower())].str.title().to_list()
+
+    return starting
