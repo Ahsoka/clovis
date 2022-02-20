@@ -3,9 +3,11 @@ from typing import Dict
 import functools
 import discord
 import pathlib
+import logging
 import pandas
 import json
 
+logger = logging.getLogger(__name__)
 
 if not hasattr(functools, 'cache'):
     # Function below is copied straight
@@ -50,4 +52,10 @@ def load_timezones():
             timezones: Dict[str, pandas.Series] = json.load(file)
             for timezone in timezones:
                 timezones[timezone] = pandas.Series(timezones[timezone])
+        logger.debug("Detected the timezones.json file and loaded into RAM.")
         return timezones
+    else:
+        logger.warning(
+            "The bot failed to detect the timezones.json file, "
+            "autocomplete will be disabled."
+        )
