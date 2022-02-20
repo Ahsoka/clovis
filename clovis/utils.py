@@ -1,5 +1,11 @@
+from typing import Dict
+
 import functools
 import discord
+import pathlib
+import pandas
+import json
+
 
 if not hasattr(functools, 'cache'):
     # Function below is copied straight
@@ -32,3 +38,16 @@ async def hardened_fetch_channel(channel_id: int, guild: discord.Guild, default=
         if default is sentinel:
             raise error from not_found
         return default
+
+
+timezones_json = pathlib.Path('timezones.json')
+autocomplete = timezones_json.exists()
+
+@functools.cache
+def load_timezones():
+    if autocomplete:
+        with timezones_json.open() as file:
+            timezones: Dict[str, pandas.Series] = json.load(file)
+            for timezone in timezones:
+                timezones[timezone] = pandas.Series(timezones[timezone])
+        return timezones
