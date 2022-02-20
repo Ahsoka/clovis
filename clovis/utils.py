@@ -54,7 +54,6 @@ async def hardened_fetch_channel(channel_id: int, guild: discord.Guild, default=
             raise error from not_found
         return default
 
-
 timezones_json = pathlib.Path('timezones.json')
 autocomplete = timezones_json.exists()
 
