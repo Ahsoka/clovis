@@ -1,6 +1,5 @@
 from discord.ext.commands import Converter, BadArgument
 from typing import Dict
-from dateutil import tz
 
 import functools
 import discord
@@ -30,7 +29,7 @@ class TimeZoneConverter(Converter):
         for timezone, series in load_timezones().items():
             if not (filtered := series[series.isin([argument.lower()])]).empty:
                 timezone_str = f"{format_tz_str(timezone)}/{format_tz_str(filtered.iloc[0])}"
-                return tz.gettz(timezone_str)
+                return timezone_str
         bad_argument = BadArgument(f"'{argument}' is not a valid timezone.")
         bad_argument.bad_argument = argument
         raise bad_argument
