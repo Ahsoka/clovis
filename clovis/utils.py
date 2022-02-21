@@ -239,7 +239,7 @@ class DateButton(discord.ui.Button):
     def __init__(
         self,
         date: datetime,
-        paginator,
+        paginator: When2MeetPaginator,
         store_selected: Set[datetime],
         style: discord.ButtonStyle = discord.ButtonStyle.secondary,
         disabled: bool = False,
