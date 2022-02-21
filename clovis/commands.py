@@ -188,6 +188,9 @@ class CommandsCog(commands.Cog):
             ],
             tz.gettz(timezone)
         )
+
+        logger.info(f"{ctx.author} used the /create when2meet command. ID: {id(paginator)}")
+
         await paginator.respond(ctx.interaction)
 
         await paginator.ready.wait()
@@ -200,6 +203,7 @@ class CommandsCog(commands.Cog):
         ) as resp:
             resp.raise_for_status()
             soup = BeautifulSoup(await resp.text(), 'html.parser')
+        logger.info(f"The when2meet was succesfully created: ID {id(paginator)}")
         try:
             url = f"https://www.when2meet.com/{soup.body['onload'].split('/')[-1][:-1]}"
         except (KeyError, IndexError) as error:

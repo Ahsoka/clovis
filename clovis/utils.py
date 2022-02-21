@@ -38,6 +38,8 @@ if not hasattr(functools, 'cache'):
     def functools_cache(user_function): return functools.lru_cache(maxsize=None)(user_function)
     functools.cache = functools_cache
 
+commands = logging.getLogger('clovis.commands')
+
 
 class MissingCategoryChannel(discord.DiscordException):
     pass
@@ -54,6 +56,7 @@ class TimeZoneConverter(Converter):
         for timezone, series in load_timezones().items():
             if not (filtered := series[series.isin([argument.lower()])]).empty:
                 timezone_str = f"{format_tz_str(timezone)}/{format_tz_str(filtered.iloc[0])}"
+                commands.debug(f'Converted {argument} to valid timezone: {timezone_str}')
                 return timezone_str
         bad_argument = BadArgument(f"'{argument}' is not a valid timezone.")
         bad_argument.bad_argument = argument
@@ -149,6 +152,7 @@ class When2MeetPaginator(Paginator):
         )
 
     async def sumbit_button_callback(self, interaction: discord.Interaction):
+        commands.info(f"{interaction.user} submitted the paginator. ID: {id(self)}")
         self.ready.set()
 
     def create_payload(self, event_name: str, timezone: str):
@@ -162,6 +166,10 @@ class When2MeetPaginator(Paginator):
             'NoLaterThan': self.time_select.latest,
             'TimeZone': timezone
         }
+
+    async def goto_page(self, page_number=0) -> discord.Message:
+        commands.info(f"Page {page_number} is being requested. ID: {id(self)}")
+        return await super().goto_page(page_number)
 
     async def update(self, *args, **kwargs):
         raise NotImplementedError()
@@ -228,6 +236,7 @@ class TimeSelect(discord.ui.Select):
         self.end_time = end_time
 
     async def callback(self, interaction: discord.Interaction):
+        commands.info(f"{interaction.user} selected {self.values} ID: {id(self.paginator)}")
         for option in self.options:
             option.default = False
             for value in self.values:
@@ -279,6 +288,7 @@ class DateButton(discord.ui.Button):
         self.store_selected = store_selected
 
     async def callback(self, interaction: discord.Interaction):
+        commands.info(f"{interaction.user} selected the {self.label} button. ID: {id(self.paginator)}")
         if self.style == discord.ButtonStyle.secondary:
             self.store_selected.add(self.date)
             self.style = discord.ButtonStyle.success
