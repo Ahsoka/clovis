@@ -1,8 +1,11 @@
+from discord.ext.pages import Paginator, PaginatorButton
 from discord.ext.commands import Converter, BadArgument
 from datetime import datetime, timedelta
+from more_itertools import chunked
 from typing import Dict, Set, List
 
 import functools
+import asyncio
 import discord
 import pathlib
 import logging
@@ -50,6 +53,139 @@ class TimeZoneConverter(Converter):
         bad_argument = BadArgument(f"'{argument}' is not a valid timezone.")
         bad_argument.bad_argument = argument
         raise bad_argument
+
+
+class When2MeetPaginator(Paginator):
+    ROWS = 3
+    DAYS_PER_ROW = 4
+
+    _dates: List[datetime] = []
+
+    @classmethod
+    def dates(cls, timezone, rows: int = None, days_per_row: int = None):
+        if rows is None:
+            rows = cls.ROWS
+        if days_per_row is None:
+            days_per_row = cls.DAYS_PER_ROW
+
+        if not cls._dates:
+            # NOTE: Here for some reason
+            # the order of the for loop
+            # is reversed from the conventional
+            # set up.
+            cls._dates = [
+                datetime.now(timezone) + timedelta(days=days + row * days_per_row)
+                for row in range(rows)
+                for days in range(days_per_row)
+            ]
+        elif datetime.now(timezone).date() > cls._dates[0].astimezone(timezone).date():
+            cls._dates.pop(0)
+            cls._dates.append(cls._dates[-1] + timedelta(days=1))
+
+        return cls._dates
+
+    def __init__(
+        self,
+        pages,
+        timezone,
+        author_check: bool = True
+    ) -> None:
+        # NOTE: For the future if you are up for it
+        # add the initially proposed time updating
+        # so for example if it is 11:59 pm
+        # and then it turns to 12:00 am
+        # the bot will automatically remove
+        # old day from the options.
+
+        self.ready = asyncio.Event()
+
+        self.selected_dates = set()
+        self.date_buttons = []
+        for row, button_row in enumerate(chunked(self.dates(timezone), self.DAYS_PER_ROW)):
+            for date in button_row:
+                self.date_buttons.append(DateButton(date, self, self.selected_dates, row=row))
+
+        self.back_button = PaginatorButton(
+            'prev',
+            emoji='🔙',
+            disabled=True,
+            style=discord.ButtonStyle.primary
+        )
+        self.next_button = PaginatorButton(
+            'next',
+            emoji='🔜',
+            disabled=True,
+            style=discord.ButtonStyle.primary
+        )
+        self.submit_button = discord.ui.Button(
+            style=discord.ButtonStyle.success,
+            emoji='✔',
+            disabled=True
+        )
+
+        self.submit_button.callback = self.sumbit_button_callback
+
+        super().__init__(
+            pages,
+            custom_buttons=[self.back_button, self.next_button],
+            author_check=author_check,
+            use_default_buttons=False,
+            disable_on_timeout=False,
+            show_indicator=False,
+            show_disabled=True,
+            timeout=None
+        )
+
+        self.time_select = TimeSelect(
+            datetime.min,
+            datetime.max,
+            paginator=self,
+            row=0
+        )
+
+    async def sumbit_button_callback(self, interaction: discord.Interaction):
+        self.ready.set()
+
+    def create_payload(self, event_name: str, timezone: str):
+        return {
+            'NewEventName': event_name,
+            'DateTypes': 'SpecificDates',
+            'PossibleDates': '|'.join(
+                map(lambda date: format(date, '%Y-%m-%d'), self.selected_dates)
+            ),
+            'NoEarlierThan': self.time_select.earliest,
+            'NoLaterThan': self.time_select.latest,
+            'TimeZone': timezone
+        }
+
+    async def update(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    def update_buttons(self) -> Dict:
+        super().update_buttons()
+
+        if self.current_page == 0:
+            for key, button_dict in self.buttons.items():
+                self.remove_item(button_dict['object'])
+                button_dict['object'].row = self.ROWS
+                if key == 'next':
+                    button_dict['hidden'] = not bool(self.selected_dates)
+                    button_dict['object'].disabled = not bool(self.selected_dates)
+                self.add_item(button_dict['object'])
+
+            self.submit_button.row = self.ROWS
+            self.add_item(self.submit_button)
+
+            for button in self.date_buttons:
+                self.add_item(button)
+        elif self.current_page == 1:
+            self.add_item(self.time_select)
+            for button_dict in self.buttons.values():
+                self.remove_item(button_dict['object'])
+                button_dict['object'].row = 1
+                self.add_item(button_dict['object'])
+            self.submit_button.row = 1
+            self.add_item(self.submit_button)
 
 
 class TimeSelect(discord.ui.Select):
