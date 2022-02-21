@@ -1,5 +1,5 @@
 from discord.ext.commands import Converter, BadArgument
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Set
 
 import functools
@@ -50,6 +50,41 @@ class TimeZoneConverter(Converter):
         bad_argument = BadArgument(f"'{argument}' is not a valid timezone.")
         bad_argument.bad_argument = argument
         raise bad_argument
+
+
+class TimeSelect(discord.ui.Select):
+    def __init__(
+        self,
+        start_time: datetime,
+        end_time: datetime,
+        paginator,
+        row: int,
+        placeholder: str = "Select a start time and an end time.",
+        disabled: bool = False
+    ):
+        options = []
+        for hour in range((end_time - start_time).seconds // 3600 + 1):
+            new_time = start_time + timedelta(hours=hour)
+            options.append(
+                discord.SelectOption(
+                    label=format(new_time, '%I %p'),
+                    emoji=num_to_clock_emoji[new_time.hour % 12],
+                    value=str(hour)
+                )
+            )
+
+        super().__init__(
+            placeholder=placeholder,
+            min_values=2,
+            max_values=2,
+            options=options,
+            disabled=disabled,
+            row=row
+        )
+
+        self.paginator = paginator
+        self.start_time = start_time
+        self.end_time = end_time
 
 
 class DateButton(discord.ui.Button):
