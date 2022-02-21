@@ -42,6 +42,10 @@ class MissingCategoryChannel(discord.DiscordException):
     pass
 
 
+class HTMLChangeError(Exception):
+    pass
+
+
 class TimeZoneConverter(Converter):
     async def convert(self, ctx: discord.ApplicationContext, argument: str):
         format_tz_str = lambda tz_str: tz_str.replace(' ', '_').title()
