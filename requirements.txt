@@ -1,5 +1,6 @@
 sqlalchemy>=1.4.3
 py-cord==2.0.0b4
 python-dateutil
+beautifulsoup4
 more-itertools
 pandas
