@@ -201,6 +201,16 @@ class When2MeetPaginator(Paginator):
             self.submit_button.row = 1
             self.add_item(self.submit_button)
 
+    async def on_error(self, error: Exception, item: discord.ui.Item, interaction: discord.Interaction) -> None:
+        commands.error(f"The following error occured with {type(item)}:", exc_info=error)
+        await interaction.response.send_message("Uh oh! Something went wrong on our end. Please try again later!")
+        # NOTE: self.disabe is bugged when not using a custom view
+        # await self.disable()
+
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+
 
 class TimeSelect(discord.ui.Select):
     def __init__(
