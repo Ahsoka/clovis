@@ -256,6 +256,7 @@ class CommandsCog(commands.Cog):
         description="Use this command to get my source code!"
     )
     async def source(self, ctx: discord.ApplicationContext):
+        # TODO: Add link button to source command
         await ctx.respond("You can find my source code here: https://github.com/Ahsoka/clovis")
         logger.info(f"{ctx.author} used the /source command.")
 
