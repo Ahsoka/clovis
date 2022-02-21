@@ -262,6 +262,23 @@ class DateButton(discord.ui.Button):
         self.date_format = date_format
         self.store_selected = store_selected
 
+    async def callback(self, interaction: discord.Interaction):
+        if self.style == discord.ButtonStyle.secondary:
+            self.store_selected.add(self.date)
+            self.style = discord.ButtonStyle.success
+        elif self.style == discord.ButtonStyle.success:
+            self.store_selected.remove(self.date)
+            self.style = discord.ButtonStyle.secondary
+
+        self.paginator.next_button.disabled = not bool(self.store_selected)
+
+        self.paginator.submit_button.disabled = not (
+            bool(self.store_selected)
+            and len(self.paginator.time_select.values) == 2
+        )
+
+        await self.paginator.goto_page()
+
 sentinel = object()
 
 async def hardened_fetch_channel(channel_id: int, guild: discord.Guild, default=sentinel):
