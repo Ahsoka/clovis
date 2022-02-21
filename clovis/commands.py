@@ -1,9 +1,20 @@
-from .utils import hardened_fetch_channel
+from datetime import datetime, timedelta
 from discord.commands import Option
 from discord.ext import commands
+from bs4 import BeautifulSoup
 from . import sessionmaker
 from .tables import Guild
+from dateutil import tz
+from .utils import (
+    autocomplete_timezones,
+    hardened_fetch_channel,
+    When2MeetPaginator,
+    TimeZoneConverter,
+    HTMLChangeError,
+    autocomplete
+)
 
+import aiohttp
 import discord
 import logging
 
@@ -29,6 +40,11 @@ class CommandsCog(commands.Cog):
     stop_commands = discord.SlashCommandGroup(
         'stop',
         "Commands used to stop some automated action of the bot."
+    )
+
+    create_commands = discord.SlashCommandGroup(
+        'create',
+        "Commands used to create something."
     )
 
     @set_commands.command(
@@ -134,6 +150,108 @@ class CommandsCog(commands.Cog):
                 sql_guild.create_channel = action
                 await ctx.respond(message)
 
+    @create_commands.command(
+        name='when2meet',
+        description="Use this command to create a when2meet.",
+        options=[
+            Option(
+                str,
+                name="event-name",
+                description="Use this to set the name of the event.",
+            ),
+            Option(
+                TimeZoneConverter,
+                name='timezone',
+                description=(
+                    'Use this to set the timezone, '
+                    'by default the timezone is Pacific Standard Time.'
+                ),
+                autocomplete=autocomplete_timezones if autocomplete else None,
+                required=False
+            )
+        ]
+    )
+    async def create_when2meet(
+        self,
+        ctx: discord.ApplicationContext,
+        event_name: str,
+        timezone: str = None
+    ):
+        # TODO: If you want implement DaysOfWeek Too
+        if timezone is None:
+            timezone = 'America/Los_Angeles'
+
+        paginator = When2MeetPaginator(
+            [
+                '📅 Select One or Multiple Dates:',
+                '⏰ Select a Start and End Time:'
+            ],
+            tz.gettz(timezone)
+        )
+        await paginator.respond(ctx.interaction)
+
+        await paginator.ready.wait()
+
+        payload = paginator.create_payload(event_name, timezone)
+        async with aiohttp.request(
+            'POST',
+            'https://www.when2meet.com/SaveNewEvent.php',
+            data=payload
+        ) as resp:
+            resp.raise_for_status()
+            soup = BeautifulSoup(await resp.text(), 'html.parser')
+        try:
+            url = f"https://www.when2meet.com/{soup.body['onload'].split('/')[-1][:-1]}"
+        except (KeyError, IndexError) as error:
+            raise HTMLChangeError(
+                'The when2meet HTML code has changed! '
+                'You need to update this portion of code '
+                'to be able to analyze the new HTML.'
+            ) from error
+
+        view = discord.ui.View(discord.ui.Button(label='When2Meet', url=url))
+        # embed = discord.Embed(title=f"{event_name} When2Meet", url=url)
+        embed = discord.Embed()
+        embed.add_field(name='Event Name', value=event_name)
+        embed.add_field(
+            name='Earliest Time',
+            value=format(datetime.min.replace(hour=payload['NoEarlierThan']), '%I %p'),
+            # inline=False
+        )
+        embed.add_field(
+            name='Latest Time',
+            value=format(datetime.min.replace(hour=payload['NoLaterThan']), '%I %p')
+        )
+        if len(paginator.selected_dates) > 1:
+            max_format_code = '%A'
+            max_date = max(paginator.selected_dates)
+            min_date = min(paginator.selected_dates)
+            if max_date - min_date >= timedelta(days=7):
+                max_format_code = '%A %m/%d'
+            embed.add_field(
+                name='Date Range',
+                value=f"{format(min_date, '%A')} - {format(max_date, max_format_code)}"
+            )
+        else:
+            embed.add_field(
+                name='Date',
+                value=format(list(paginator.selected_dates)[0], '%A %m/%d'),
+            )
+        embed.add_field(name='Time Zone', value=timezone)
+        await ctx.interaction.edit_original_message(content=None, embed=embed, view=view)
+
+    @create_when2meet.error
+    async def handle_create_when2meet_error(
+        self,
+        ctx: discord.ApplicationContext,
+        error: discord.ApplicationCommandInvokeError
+    ):
+        if isinstance(error.original, commands.BadArgument):
+            await ctx.respond(
+                f"You selected an invalid timezone: '{error.original.bad_argument}'. "
+                "Please select a valid timezone from the given options."
+            )
+
     @commands.slash_command(
         description="Use this command to get my source code!"
     )
@@ -158,6 +276,10 @@ class CommandsCog(commands.Cog):
                 f"{ctx.author} tried to use the /{ctx.command.qualified_name} in a DM."
             )
             await ctx.respond("This command is not available in DM messages.")
+        elif isinstance(error.original, commands.BadArgument):
+            # NOTE: We are assuming that if this happens the individual command will have
+            # logic to handle this situation.
+            pass
         else:
             # NOTE: In this case you may want to add ping_dev function like with the bdaybot
             logger.error("The following error occured with the bot:", exc_info=error)
