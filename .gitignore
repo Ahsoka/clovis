@@ -1,2 +1,5 @@
 # Python Bytecode
 __pycache__
+
+# Token files
+*token.txt
