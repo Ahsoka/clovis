@@ -12,6 +12,7 @@ import logging
 import pandas
 import pprint
 import json
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -347,7 +348,8 @@ def load_timezones():
 autocomplete_logger = logging.getLogger('clovis.autocomplete')
 
 async def autocomplete_timezones(ctx: discord.AutocompleteContext):
-    message = f"Autocomplete received {ctx.value} as input and is returning "
+    start = time.perf_counter()
+    message = f"Autocomplete received {ctx.value!r} as input and took {{}} seconds to respond. It is returning "
     timezones = load_timezones()
     starting = []
     for full_timezone in timezones:
@@ -358,11 +360,11 @@ async def autocomplete_timezones(ctx: discord.AutocompleteContext):
             starting += timezones[full_timezone].str.title().to_list()
 
     if starting:
-        autocomplete_logger.info(message + pprint.pformat(starting))
+        autocomplete_logger.info(message.format(time.perf_counter() - start) + pprint.pformat(starting))
         return starting
 
     for series in timezones.values():
         starting += series[series.str.startswith(ctx.value.lower())].str.title().to_list()
 
-    autocomplete_logger.info(message + pprint.pformat(starting))
+    autocomplete_logger.info(message.format(time.perf_counter() - start) + pprint.pformat(starting))
     return starting
