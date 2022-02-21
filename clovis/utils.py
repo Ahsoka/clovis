@@ -1,5 +1,6 @@
 from discord.ext.commands import Converter, BadArgument
-from typing import Dict
+from datetime import datetime
+from typing import Dict, Set
 
 import functools
 import discord
@@ -33,6 +34,34 @@ class TimeZoneConverter(Converter):
         bad_argument = BadArgument(f"'{argument}' is not a valid timezone.")
         bad_argument.bad_argument = argument
         raise bad_argument
+
+
+class DateButton(discord.ui.Button):
+    def __init__(
+        self,
+        date: datetime,
+        paginator,
+        store_selected: Set[datetime],
+        style: discord.ButtonStyle = discord.ButtonStyle.secondary,
+        disabled: bool = False,
+        custom_id: str = None,
+        row: int = None,
+        date_format: str = '%A %m/%d',
+    ):
+        if not isinstance(store_selected, set):
+            raise TypeError(f'store_selected parameter must be a set, not {type(store_selected)!r}')
+
+        super().__init__(
+            style=style,
+            label=format(date, date_format),
+            disabled=disabled,
+            custom_id=custom_id,
+            row=row
+        )
+        self.paginator = paginator
+        self.date = date
+        self.date_format = date_format
+        self.store_selected = store_selected
 
 sentinel = object()
 
