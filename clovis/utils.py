@@ -90,6 +90,10 @@ class TimeSelect(discord.ui.Select):
         values = map(lambda string: int(string), self.values)
         return list(sorted(values) if sort else values)
 
+    @property
+    def earliest(self) -> int:
+        return self.values_as_int()[0]
+
 
 class DateButton(discord.ui.Button):
     def __init__(
