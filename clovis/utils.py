@@ -222,6 +222,17 @@ class TimeSelect(discord.ui.Select):
         self.start_time = start_time
         self.end_time = end_time
 
+    async def callback(self, interaction: discord.Interaction):
+        for option in self.options:
+            option.default = False
+            for value in self.values:
+                if value == option.value:
+                    option.default = True
+
+        if len(self.values) == 2:
+            self.paginator.submit_button.disabled = False
+            await self.paginator.goto_page(1)
+
     def values_as_int(self, sort: bool = True) -> List[int]:
         values = map(lambda string: int(string), self.values)
         return list(sorted(values) if sort else values)
