@@ -193,7 +193,7 @@ class TimeSelect(discord.ui.Select):
         self,
         start_time: datetime,
         end_time: datetime,
-        paginator,
+        paginator: When2MeetPaginator,
         row: int,
         placeholder: str = "Select a start time and an end time.",
         disabled: bool = False
