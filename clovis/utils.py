@@ -1,6 +1,6 @@
 from discord.ext.commands import Converter, BadArgument
 from datetime import datetime, timedelta
-from typing import Dict, Set
+from typing import Dict, Set, List
 
 import functools
 import discord
@@ -85,6 +85,10 @@ class TimeSelect(discord.ui.Select):
         self.paginator = paginator
         self.start_time = start_time
         self.end_time = end_time
+
+    def values_as_int(self, sort: bool = True) -> List[int]:
+        values = map(lambda string: int(string), self.values)
+        return list(sorted(values) if sort else values)
 
 
 class DateButton(discord.ui.Button):
