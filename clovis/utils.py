@@ -11,6 +11,22 @@ import json
 
 logger = logging.getLogger(__name__)
 
+num_to_clock_emoji = {
+    0: '🕛',
+    1: '🕐',
+    2: '🕑',
+    3: '🕒',
+    4: '🕓',
+    5: '🕔',
+    6: '🕕',
+    7: '🕖',
+    8: '🕗',
+    9: '🕘',
+    10: '🕙',
+    11: '🕚'
+
+}
+
 if not hasattr(functools, 'cache'):
     # Function below is copied straight
     # from Python 3.9 GitHub
