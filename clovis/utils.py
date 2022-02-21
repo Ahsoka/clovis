@@ -94,6 +94,10 @@ class TimeSelect(discord.ui.Select):
     def earliest(self) -> int:
         return self.values_as_int()[0]
 
+    @property
+    def latest(self) -> int:
+        return self.values_as_int()[1]
+
 
 class DateButton(discord.ui.Button):
     def __init__(
