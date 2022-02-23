@@ -56,7 +56,7 @@ async def on_guild_join(guild: discord.Guild):
                     else:
                         message += (
                             "The previously set category no longer exists. "
-                            "Please set a new one with the `/set category` command"
+                            "Please set a new one with the `/set category` command."
                         )
             else:
                 logger.info(f"{logger_message}.")
