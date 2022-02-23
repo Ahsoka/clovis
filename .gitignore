@@ -6,3 +6,6 @@ __pycache__
 
 # Log files
 *.log
+
+# Virtual environment folder
+env
