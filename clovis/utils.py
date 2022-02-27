@@ -139,10 +139,9 @@ class When2MeetPaginator(Paginator):
             custom_buttons=[self.back_button, self.next_button],
             author_check=author_check,
             use_default_buttons=False,
-            disable_on_timeout=False,
             show_indicator=False,
             show_disabled=True,
-            timeout=None
+            timeout=600
         )
 
         self.time_select = TimeSelect(
