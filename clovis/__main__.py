@@ -1,4 +1,4 @@
-from clovis.utils import load_timezones, autocomplete_logger
+from .utils import load_timezones, autocomplete_logger
 from .logs import setUpLogger, PrettyFormatter
 from .bot import bot
 from . import config
