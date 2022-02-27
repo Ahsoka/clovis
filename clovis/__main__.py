@@ -1,17 +1,13 @@
+from .logs import setUpLogger, set_pretty_formatter, logs_dir, PrettyFormatter
 from .utils import load_timezones, autocomplete_logger
-from .logs import setUpLogger, PrettyFormatter
 from .bot import bot
 from . import config
 
 import logging
-import pathlib
 
+set_pretty_formatter('%(levelname)s | %(name)s: %(asctime)s - [%(funcName)s()] %(message)s')
 for name in ['bot', 'automated', 'commands', 'utils']:
-    setUpLogger(
-        f'clovis.{name}',
-        '%(levelname)s | %(name)s: %(asctime)s - [%(funcName)s()] %(message)s',
-        files=not config.testing
-    )
+    setUpLogger(f'clovis.{name}', files=not config.testing)
 
 autocomplete = autocomplete_logger
 autocomplete.setLevel(logging.DEBUG)
@@ -24,7 +20,7 @@ if config.testing:
     console.setFormatter(pretty)
     autocomplete.addHandler(console)
 else:
-    file_handler = logging.FileHandler(pathlib.Path('logs') / 'autocomplete.log')
+    file_handler = logging.FileHandler(logs_dir / 'autocomplete.log')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(pretty)
     autocomplete.addHandler(file_handler)
