@@ -200,6 +200,12 @@ class When2MeetPaginator(Paginator):
             self.submit_button.row = 1
             self.add_item(self.submit_button)
 
+    async def on_timeout(self):
+        logger.info(f'Paginator is timed out: ID: {id(self)}')
+        if not self.ready.is_set():
+            await super().on_timeout()
+            logger.info(f'Paginator is disabled: ID {id(self)}')
+
     async def on_error(self, error: Exception, item: discord.ui.Item, interaction: discord.Interaction) -> None:
         commands.error(f"The following error occured with {type(item)}:", exc_info=error)
         await interaction.response.send_message("Uh oh! Something went wrong on our end. Please try again later!")
