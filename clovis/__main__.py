@@ -11,6 +11,9 @@ pretty = PrettyFormatter(
     fmt='%(levelname)s | %(name)s: %(asctime)s - [%(funcName)s()] %(message)s'
 )
 console = logging.StreamHandler()
+console.setLevel(logging.DEBUG)
+console.setFormatter(pretty)
+
 for name in ['bot', 'automated', 'commands', 'utils']:
     logger = logging.getLogger(f'clovis.{name}')
     logger.setLevel(logging.DEBUG)
@@ -20,8 +23,6 @@ for name in ['bot', 'automated', 'commands', 'utils']:
 autocomplete = autocomplete_logger
 autocomplete.setLevel(logging.DEBUG)
 if config.testing:
-    console.setLevel(logging.DEBUG)
-    console.setFormatter(pretty)
     autocomplete.addHandler(console)
 else:
     file_handler = logging.FileHandler(logs_dir / 'autocomplete.log')
