@@ -5,17 +5,21 @@ from . import config
 
 import logging
 
-set_pretty_formatter('%(levelname)s | %(name)s: %(asctime)s - [%(funcName)s()] %(message)s')
-for name in ['bot', 'automated', 'commands', 'utils']:
-    setUpLogger(f'clovis.{name}', files=not config.testing)
+# set_pretty_formatter('%(levelname)s | %(name)s: %(asctime)s - [%(funcName)s()] %(message)s')
 
-autocomplete = autocomplete_logger
-autocomplete.setLevel(logging.DEBUG)
 pretty = PrettyFormatter(
     fmt='%(levelname)s | %(name)s: %(asctime)s - [%(funcName)s()] %(message)s'
 )
+console = logging.StreamHandler()
+for name in ['bot', 'automated', 'commands', 'utils']:
+    logger = logging.getLogger(f'clovis.{name}')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(console)
+    # setUpLogger(f'clovis.{name}', files=not config.testing)
+
+autocomplete = autocomplete_logger
+autocomplete.setLevel(logging.DEBUG)
 if config.testing:
-    console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
     console.setFormatter(pretty)
     autocomplete.addHandler(console)
@@ -24,6 +28,19 @@ else:
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(pretty)
     autocomplete.addHandler(file_handler)
+
+    everything = logging.FileHandler(logs_dir / 'clovis.log')
+    everything.setLevel(logging.DEBUG)
+    everything.setFormatter(pretty)
+
+    errors = logging.FileHandler(logs_dir / 'ERRORS.clovis.log')
+    errors.setLevel(logging.ERROR)
+    errors.setFormatter(pretty)
+
+    for name in ['bot', 'automated', 'commands', 'utils']:
+        logger = logging.getLogger(f'clovis.{name}')
+        logger.addHandler(everything)
+        logger.addHandler(errors)
 
 load_timezones()
 
