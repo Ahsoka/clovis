@@ -132,7 +132,7 @@ class When2MeetPaginator(Paginator):
             disabled=True
         )
 
-        self.submit_button.callback = self.sumbit_button_callback
+        self.submit_button.callback = self.submit_button_callback
 
         super().__init__(
             pages,
@@ -151,7 +151,7 @@ class When2MeetPaginator(Paginator):
             row=0
         )
 
-    async def sumbit_button_callback(self, interaction: discord.Interaction):
+    async def submit_button_callback(self, interaction: discord.Interaction):
         commands.info(f"{interaction.user} submitted the paginator. ID: {id(self)}")
         self.ready.set()
 
