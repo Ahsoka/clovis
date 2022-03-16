@@ -133,7 +133,7 @@ class CommandsCog(commands.Cog):
             sql_guild.welcome_channel_id = channel.id
             if sql_guild.welcome_message == Guild.default_message:
                 sql_guild.welcome_message += (
-                    '  Additionally please review the {} channel, '
+                    '  Additionally, please review the {} channel, '
                     'so we can set up the next steps in the application process.'
                 )
         await ctx.respond(f"{channel.mention} has been set as the new welcome channel.")
