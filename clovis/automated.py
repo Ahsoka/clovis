@@ -50,7 +50,7 @@ async def on_guild_join(guild: discord.Guild):
                 sql_guild: Guild = sql_guild
                 if guild.owner:
                     message = message.format(' back')
-                    category = await hardened_fetch_channel(sql_guild.category_id, guild, None)
+                    category = await hardened_fetch_channel(sql_guild.create_category_id, guild, None)
                     if category:
                         message += f"I currently have {category.mention} as the selected category."
                     else:
@@ -81,7 +81,7 @@ async def on_member_join(member: discord.Member):
             sql_guild = await Guild.get_or_create(session, member.guild.id)
             if member.guild.me.guild_permissions.administrator:
                 if sql_guild.listen:
-                    category = await hardened_fetch_channel(sql_guild.category_id, member.guild)
+                    category = await hardened_fetch_channel(sql_guild.create_category_id, member.guild)
                     await member.guild.create_text_channel(
                         member.display_name,
                         category=category,

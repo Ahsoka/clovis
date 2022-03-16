@@ -17,14 +17,14 @@ class Guild:
         'sa': Column(BigInteger, primary_key=True)
         }
     )
-    category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
+    create_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     last_message_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     create_channel: bool = field(default=True, metadata={'sa': Column(Boolean, nullable=False)})
     message_error: bool = field(default=True, metadata={'sa': Column(Boolean, nullable=False)})
 
     @property
     def listen(self):
-        return self.category_id and self.create_channel
+        return self.create_category_id and self.create_channel
 
     @classmethod
     async def get_or_create(cls, session: AsyncSession, guild_id: int) -> 'Guild':

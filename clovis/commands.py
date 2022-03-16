@@ -65,7 +65,7 @@ class CommandsCog(commands.Cog):
         if ctx.me.guild_permissions.administrator:
             async with sessionmaker.begin() as session:
                 sql_guild = await Guild.get_or_create(session, ctx.guild_id)
-                sql_guild.category_id = channel.id
+                sql_guild.create_category_id = channel.id
                 sql_guild.create_channel = True
             await ctx.respond(f"{channel.mention} has been set as the new category to create private channels in.")
             logger.info(f"{ctx.author} used the /set category command to set the category to {channel}.")
@@ -89,11 +89,11 @@ class CommandsCog(commands.Cog):
         async with sessionmaker.begin() as session:
             sql_guild = await Guild.get_or_create(session, ctx.guild_id)
             if category := await hardened_fetch_channel(
-                sql_guild.category_id, ctx.guild, default=None
+                sql_guild.create_category_id, ctx.guild, default=None
             ):
                 message = f'The current category set is {category.mention}.'
             else:
-                if sql_guild.category_id:
+                if sql_guild.create_category_id:
                     message = (
                         "The previously set category channel was deleted, "
                         "please set a new one with the `/set category` command."
@@ -103,7 +103,7 @@ class CommandsCog(commands.Cog):
                         "This server does not currently have category, "
                         "set one using `/set category` command."
                     )
-                sql_guild.category_id = None
+                sql_guild.create_category_id = None
         await ctx.respond(message)
         logger.info(f"{ctx.author} used the /get category command.")
 
