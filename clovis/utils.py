@@ -1,8 +1,8 @@
 from discord.ext.pages import Paginator, PaginatorButton
 from discord.ext.commands import Converter, BadArgument
 from datetime import datetime, timedelta
+from typing import Dict, Set, List, Any
 from more_itertools import chunked
-from typing import Dict, Set, List
 
 import functools
 import asyncio
@@ -323,7 +323,7 @@ class DateButton(discord.ui.Button):
 
 sentinel = object()
 
-async def hardened_fetch_channel(channel_id: int, guild: discord.Guild, default=sentinel):
+async def hardened_fetch_channel(channel_id: int, guild: discord.Guild, default: Any = sentinel):
     # NOTE: Might want to add some checking to see if the retreived channel
     # is actually a category channel but the chances someone will set
     # a channel other than a category channel as the channel is extremely
