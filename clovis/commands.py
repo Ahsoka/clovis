@@ -35,6 +35,10 @@ class CommandsCog(commands.Cog):
         'get',
         "Commands used to get various information about the bot."
     )
+    welcome_get_command = get_commands.create_subgroup(
+        'welcome',
+        'Command used for getting the current welcome channel.'
+    )
 
     start_commands = discord.SlashCommandGroup(
         'start',
@@ -129,6 +133,30 @@ class CommandsCog(commands.Cog):
             sql_guild.welcome_channel_id = channel.id
         await ctx.respond(f"{channel.mention} has been set as the new welcome channel.")
         logger.info(f"{ctx.author} used the /set welcome channel command to set the welcome channel to {channel}.")
+
+    @welcome_get_command.command(
+        name='channel',
+        description="Use this command to find out the current welcome channel."
+    )
+    async def get_welcome_channel(self, ctx: discord.ApplicationContext):
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, ctx.guild_id)
+            if sql_guild.welcome_channel_id:
+                channel = await hardened_fetch_channel(sql_guild.welcome_channel_id, ctx.guild, None)
+                if channel:
+                    await ctx.respond(f"{channel.mention} is currently set as the welcome channel.")
+                else:
+                    sql_guild.welcome_channel_id = None
+                    await ctx.respond(
+                        "The previously set welcome channel has been deleted! "
+                        "Please set a new one with the `/set welcome channel` command."
+                    )
+            else:
+                await ctx.respond(
+                    "There is currently no welcome channel. "
+                    "Set one using the `/set welcome channel` command."
+                )
+        logger.info(f"{ctx.author} used the /get welcome channel command.")
 
     @start_commands.command(
         name='listening',
