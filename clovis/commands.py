@@ -131,6 +131,11 @@ class CommandsCog(commands.Cog):
         async with sessionmaker.begin() as session:
             sql_guild = await Guild.get_or_create(session, ctx.guild_id)
             sql_guild.welcome_channel_id = channel.id
+            if sql_guild.welcome_message == Guild.default_message:
+                sql_guild.welcome_message += (
+                    '  Additionally please review the {} channel, '
+                    'so we can set up the next steps in the application process.'
+                )
         await ctx.respond(f"{channel.mention} has been set as the new welcome channel.")
         logger.info(f"{ctx.author} used the /set welcome channel command to set the welcome channel to {channel}.")
 
