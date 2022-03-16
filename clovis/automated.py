@@ -82,7 +82,7 @@ async def on_member_join(member: discord.Member):
             if member.guild.me.guild_permissions.administrator:
                 if sql_guild.listen:
                     category = await hardened_fetch_channel(sql_guild.create_category_id, member.guild)
-                    await member.guild.create_text_channel(
+                    channel = await member.guild.create_text_channel(
                         member.display_name,
                         category=category,
                         overwrites={
@@ -98,6 +98,27 @@ async def on_member_join(member: discord.Member):
                         }
                     )
                     logger.info(f"{member}'s private channel was successfully created!")
+                    placeholders = [member.mention]
+                    if sql_guild.welcome_channel_id:
+                        placeholders.append(sql_guild.mention_welcome)
+
+                    await channel.send(sql_guild.welcome_message.format(*placeholders))
+                    logger.info(f"Successfully sent welcome message in {member}'s private channel.")
+
+                    if (
+                        not sql_guild.welcome_channel_id
+                        and sql_guild.message_missing_welcome_channel
+                        and member.guild.owner
+                    ):
+                        logger.warning(f'There is no welcome channel set in {member.guild}.')
+                        await member.guild.owner.send(
+                            "There is currently no welcome channel set. "
+                            "Please use `/set welcome channel` command "
+                            "to set a welcome channel."
+                        )
+                        logger.info('Successfully notified the server owner about the issue.')
+                        sql_guild.message_missing_welcome_channel = False
+
             elif sql_guild.message_error:
                 if member.guild.owner:
                     await member.guild.owner.send(
