@@ -9,6 +9,11 @@ mapper = registry()
 @mapper.mapped
 @dataclass
 class Guild:
+    default_message = (
+        'Hello {}, we are glad to have you!  Thank you for applying!  '
+        '**Please change your nickname to your first and last name.**'
+    )
+
     __tablename__ = 'guilds'
 
     __sa_dataclass_metadata_key__ = 'sa'
@@ -18,13 +23,7 @@ class Guild:
         }
     )
     create_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
-    welcome_message: str = field(
-        default=(
-            'Hello {}, we are glad to have you!  Thank you for applying!  '
-            '**Please change your nickname to your first and last name.**'
-        ),
-        metadata={'sa': Column(String(4000))}
-    )
+    welcome_message: str = field(default=default_message, metadata={'sa': Column(String(4000))})
     welcome_channel_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     last_message_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     create_channel: bool = field(default=True, metadata={'sa': Column(Boolean, nullable=False)})
