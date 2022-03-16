@@ -117,7 +117,7 @@ class CommandsCog(commands.Cog):
             ctx=ctx,
             action=True,
             message="I will now start creating new text channels when new members join.",
-            alt_message="I am already listening for messages!"
+            alt_message="I am already listening for new members joining!"
         )
         logger.info(f"{ctx.author} used the /start listening command.")
 
@@ -131,7 +131,7 @@ class CommandsCog(commands.Cog):
             ctx=ctx,
             action=False,
             message="I will no longer create new text channels when new members join.",
-            alt_message="I am already not listening for messages!"
+            alt_message="I am not currently listening for new members joining."
         )
         logger.info(f"{ctx.author} used the /stop listening command.")
 
