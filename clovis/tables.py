@@ -35,6 +35,10 @@ class Guild:
     def listen(self):
         return self.create_category_id and self.create_channel
 
+    @property
+    def mention_welcome(self):
+        return f'<#{self.welcome_channel_id}>'
+
     @classmethod
     async def get_or_create(cls, session: AsyncSession, guild_id: int) -> 'Guild':
         if (guild := await session.get(cls, guild_id)):
