@@ -336,7 +336,7 @@ async def hardened_fetch_channel(channel_id: int, guild: discord.Guild, default:
     if (channel := guild.get_channel(channel_id)):
         return channel
     try:
-        channel = await guild.fetch_channel(channel_id)
+        return await guild.fetch_channel(channel_id)
     except discord.NotFound as not_found:
         if default is sentinel:
             raise error from not_found
