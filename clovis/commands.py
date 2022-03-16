@@ -26,6 +26,10 @@ class CommandsCog(commands.Cog):
         'set',
         'Commands used to configure various aspects of the bot.'
     )
+    welcome_set_command = set_commands.create_subgroup(
+        'welcome',
+        'Command used for setting the welcome channel.'
+    )
 
     get_commands = discord.SlashCommandGroup(
         'get',
@@ -106,6 +110,25 @@ class CommandsCog(commands.Cog):
                 sql_guild.create_category_id = None
         await ctx.respond(message)
         logger.info(f"{ctx.author} used the /get category command.")
+
+    @welcome_set_command.command(
+        name='channel',
+        description="Use this command to set the welcome channel.",
+        options=[
+            Option(
+                discord.TextChannel,
+                name='channel',
+                description="The desired welcome channel."
+            )
+        ]
+    )
+    @commands.has_guild_permissions(administrator=True)
+    async def set_welcome_channel(self, ctx: discord.ApplicationContext, channel: discord.TextChannel):
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, ctx.guild_id)
+            sql_guild.welcome_channel_id = channel.id
+        await ctx.respond(f"{channel.mention} has been set as the new welcome channel.")
+        logger.info(f"{ctx.author} used the /set welcome channel command to set the welcome channel to {channel}.")
 
     @start_commands.command(
         name='listening',
