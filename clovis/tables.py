@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Boolean
+from sqlalchemy import Column, BigInteger, Boolean, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.decl_api import registry
 from dataclasses import dataclass, field
@@ -18,6 +18,13 @@ class Guild:
         }
     )
     create_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
+    default_message: str = field(
+        default=(
+            'Hello {}, we are glad to have you!  Thank you for applying!  '
+            '**Please change your nickname to your first and last name.**'
+        ),
+        metadata={'sa': Column(String(4000))}
+    )
     welcome_channel_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     last_message_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     create_channel: bool = field(default=True, metadata={'sa': Column(Boolean, nullable=False)})
