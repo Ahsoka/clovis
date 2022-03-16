@@ -18,7 +18,7 @@ class Guild:
         }
     )
     create_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
-    default_message: str = field(
+    welcome_message: str = field(
         default=(
             'Hello {}, we are glad to have you!  Thank you for applying!  '
             '**Please change your nickname to your first and last name.**'
