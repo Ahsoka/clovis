@@ -3,6 +3,7 @@ from .utils import hardened_fetch_channel
 from . import sessionmaker, engine
 from .tables import Guild, mapper
 from sqlalchemy import text
+from typing import Dict
 from .bot import bot
 
 import discord
@@ -161,6 +162,58 @@ async def on_guild_role_update(before: discord.Role, after: discord.Role):
                         "create new private channels."
                     )
                     logger.info("The owner was notified about the correction to the bot's role.")
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    async with sessionmaker.begin() as session:
+        sql_guild = await Guild.get_or_create(session, after.guild.id)
+        if not after.bot and before.nick != after.nick and sql_guild.create_category_id:
+            logger.debug(f"{after} changed their nickname from {before.nick!r} to {after.nick!r}.")
+            category = await hardened_fetch_channel(sql_guild.create_category_id, before.guild)
+            nonadmins = set()
+            admins = set()
+            user_channels: Dict[int, discord.TextChannel] = {}
+            try:
+                for num, text_channel in enumerate(category.text_channels):
+                    users = set(map(lambda member: member.id, text_channel.members))
+                    admins |= nonadmins & users
+                    persons = users - admins
+                    nonadmins |= persons
+                    nonadmins -= admins
+                    if num == 1:
+                        nonadmins_temp = list(nonadmins)
+                        channel = lambda person_id: next(
+                            filter(
+                                lambda channel: person_id in map(
+                                    lambda member: member.id, channel.members
+                                ),
+                                category.text_channels
+                            )
+                        )
+                        user_channels[nonadmins_temp[0]] = channel(nonadmins_temp[0])
+                        user_channels[nonadmins_temp[1]] = channel(nonadmins_temp[1])
+                    elif num > 1:
+                        if len(persons) > 1:
+                            raise ValueError(
+                                f"Multiple people detected in the private text channel: {text_channel}."
+                            )
+                        elif len(persons) == 0:
+                            raise ValueError(
+                                f"No one detected in the private text channel: {text_channel}."
+                            )
+                        user_channels[persons.pop()] = text_channel
+
+                await user_channels[after.id].edit(
+                    name=after.nick if after.nick else after.name,
+                    reason="Updating channel to the user's real name (as inferred from their nickname)."
+                )
+                logger.info(f"Successfully updated the name of {after}'s private channel to {after.nick!r}")
+            except (ValueError, KeyError) as error:
+                logger.warning(
+                    f"Failed to locate {after}'s private channel, "
+                    "it may be because they are an admin and do not have one.",
+                    exc_info=error
+                )
 
 @bot.event
 async def on_error(event: str, *args, **kwargs):
