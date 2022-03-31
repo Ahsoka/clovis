@@ -144,6 +144,7 @@ class CommandsCog(commands.Cog):
         name='channel',
         description="Use this command to find out the current welcome channel."
     )
+    @commands.guild_only()
     async def get_welcome_channel(self, ctx: discord.ApplicationContext):
         async with sessionmaker.begin() as session:
             sql_guild = await Guild.get_or_create(session, ctx.guild_id)
