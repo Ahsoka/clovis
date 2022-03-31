@@ -74,6 +74,7 @@ class CommandsCog(commands.Cog):
             async with sessionmaker.begin() as session:
                 sql_guild = await Guild.get_or_create(session, ctx.guild_id)
                 sql_guild.create_category_id = channel.id
+                # NOTE: Might want to be careful here of automatically setting the bot to listen.
                 sql_guild.create_channel = True
             await ctx.respond(f"{channel.mention} has been set as the new category to create private channels in.")
             logger.info(f"{ctx.author} used the /set category command to set the category to {channel}.")
