@@ -1,11 +1,15 @@
-from . import config
+from typing import List, Union
 
 import logging, logging.handlers
-import datetime
 import pathlib
 
 # NOTE: Adapted from: https://github.com/Ahsoka/bdaybot/blob/master/bdaybot/logs.py
+# There are major issues with the TimedRotatingFileHandler. It will be discontinued until
+# until a proper fix can be found for it or until it is fixed. Either I am using it very
+# incorrectly or there are major issues with. Nonetheless normal FileHandlers seems to work
+# fine so they will now be used in place of the TimedRotatingFileHandler.
 
+logs_dir = pathlib.Path('logs')
 
 class PrettyFormatter(logging.Formatter):
     def __init__(self, *args, style='%', **kwargs):
@@ -38,62 +42,32 @@ class PrettyFormatter(logging.Formatter):
         # print(f"returning == unparsed = {unparsed == returning}")
         return returning
 
-
-def file_renamer(filename: str):
-    split = filename.split('.')
-    return ".".join(split[:-3] + [split[-1], split[-2]])
-
-logs_dir = None
-if not config.testing:
-    # Init the PrettyFormatter
-    logs_dir = pathlib.Path('.').parent / 'logs'
-    logs_dir.mkdir(exist_ok=True)
-    # Create a handler that records all activity
-    everything = logging.handlers.TimedRotatingFileHandler(
-        logs_dir / f'clovis.{format(datetime.datetime.today(), "%Y-%m-%d")}.log',
-        when='midnight',
-        encoding='UTF-8'
+def setUpHandler(
+    handler: logging.Handler,
+    level: int = logging.DEBUG,
+    formatter: logging.Formatter = PrettyFormatter(
+        fmt='%(levelname)s | %(name)s: %(asctime)s - [%(funcName)s()] %(message)s'
     )
-    # Do not use loggging.NOTSET, does not work for some reason
-    # use logging.DEBUG if you want the lowest level
-    everything.setLevel(logging.DEBUG)
+):
+    if level is not None:
+        handler.setLevel(level)
 
-    # Create a handler that records only ERRORs and CRITICALs
-    errors_only = logging.handlers.TimedRotatingFileHandler(
-        logs_dir / f'ERRORS.clovis.{format(datetime.datetime.today(), "%Y-%m-%d")}.log',
-        when='midnight',
-        encoding='UTF-8'
-    )
-    errors_only.setLevel(logging.ERROR)
+    if formatter is not None:
+        handler.setFormatter(formatter)
 
-    # Rename files so .log is the file extension
-    everything.namer, errors_only.namer = (file_renamer,) * 2
+    return handler
 
-# Create a handler so we can see the output on the console
-console = logging.StreamHandler()
-console.setLevel(logging.DEBUG)
+def setUpLogger(logger: Union[str, logging.Logger], handlers: List[logging.Handler], default_level=logging.DEBUG):
+    if isinstance(logger, str):
+        logger = logging.getLogger(logger)
 
+    if default_level is not None:
+        logger.setLevel(default_level)
 
-def set_pretty_formatter(fmt: str, datefmt: str = '%I:%M %p'):
-    pretty = PrettyFormatter(fmt=fmt, datefmt=datefmt)
-    console.setFormatter(pretty)
-    if not config.testing:
-        everything.setFormatter(pretty)
-        errors_only.setFormatter(pretty)
-
-def setUpLogger(name, files=True):
-    # Init the logger
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-
-    if files:
-        logs_dir.mkdir(exist_ok=True)
-
-        # Add handlers to the logger
-        logger.addHandler(everything)
-        logger.addHandler(errors_only)
-
-    # Add handler to the logger
-    logger.addHandler(console)
+    for handler in handlers:
+        logger.addHandler(handler)
 
     return logger
+
+console = logging.StreamHandler()
+setUpHandler(console)
