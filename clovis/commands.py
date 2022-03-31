@@ -260,7 +260,7 @@ class CommandsCog(commands.Cog):
         ) as resp:
             resp.raise_for_status()
             soup = BeautifulSoup(await resp.text(), 'html.parser')
-        logger.info(f"The when2meet was succesfully created: ID {id(paginator)}")
+        logger.info(f"The when2meet was successfully created: ID {id(paginator)}")
         try:
             url = f"https://www.when2meet.com/{soup.body['onload'].split('/')[-1][:-1]}"
         except (KeyError, IndexError) as error:
