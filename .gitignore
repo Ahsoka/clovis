@@ -9,3 +9,6 @@ __pycache__
 
 # Virtual environment folder
 env
+
+# VSCode Config Folder
+.vscode
