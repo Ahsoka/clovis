@@ -11,6 +11,7 @@ from .utils import (
     When2MeetPaginator,
     TimeZoneConverter,
     HTMLChangeError,
+    WelcomeModal,
     autocomplete
 )
 
@@ -164,6 +165,53 @@ class CommandsCog(commands.Cog):
                     "Set one using the `/set welcome channel` command."
                 )
         logger.info(f"{ctx.author} used the /get welcome channel command.")
+
+    @welcome_set_command.command(
+        name='message',
+        description="Use this command to set the welcome message in each newly created channel."
+    )
+    @commands.has_guild_permissions(administrator=True)
+    async def set_welcome_message(self, ctx: discord.ApplicationContext):
+        logger.info(f"{ctx.author} used the /set welcome message command. ID: {id(ctx)}")
+        async def edit_button_callback(interaction: discord.Interaction):
+            logger.info(f'{interaction.user} clicked the Edit Message button. ID: {id(ctx)}')
+            async with sessionmaker.begin() as session:
+                sql_guild = await Guild.get_or_create(session, interaction.guild_id)
+                modal = WelcomeModal(
+                    ctx,
+                    'Welcome Message',
+                    'Message',
+                    edit_button.og_message,
+                    sql_guild.welcome_message
+                )
+                await interaction.response.send_modal(modal)
+            logger.info(f'Successfully sent the modal. ID: {id(ctx)}')
+
+        edit_button = discord.ui.Button(
+            style=discord.ButtonStyle.blurple, label='Edit Message'
+        )
+        edit_button.og_message = (
+            "The following is a sample welcome message:\n"
+            "> {}\n\n"
+            'Please click the "Edit Message" button to edit the message.\n\n'
+            "Note there can be up to two placeholders in the message, "
+            "one to mention the person's name and another to mention the welcome channel. "
+            "These placeholders are denoted by curly braces {{}} "
+            "where the first pair of curly braces is the person's mention "
+            "and second pair of curly braces is for the welcome channel."
+        )
+        edit_button.callback = edit_button_callback
+
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, ctx.guild_id)
+            args = [ctx.bot.user.mention]
+            if sql_guild.welcome_channel_id:
+                args.append(sql_guild.mention_welcome)
+
+            await ctx.respond(
+                edit_button.og_message.format(sql_guild.welcome_message.format(*args)),
+                view=discord.ui.View(edit_button)
+            )
 
     @start_commands.command(
         name='listening',

@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Set, List, Any
 from more_itertools import chunked
 
+from . import sessionmaker
+from .tables import Guild
+
 import functools
 import asyncio
 import discord
@@ -320,6 +323,61 @@ class DateButton(discord.ui.Button):
         )
 
         await self.paginator.goto_page()
+
+
+class WelcomeModal(discord.ui.Modal):
+    def __init__(self, ctx: discord.ApplicationContext, title: str, label: str, template_message: str, value: str = None, placeholder: str = None):
+        super().__init__(title)
+        self._ctx = ctx
+        self.template_message = template_message
+        self.add_item(discord.ui.InputText(style=discord.InputTextStyle.long, label=label, value=value, placeholder=placeholder))
+
+    @property
+    def text(self):
+        return self.children[0].value
+
+    async def callback(self, interaction: discord.Interaction):
+        logger.info(f'{interaction.user} submitted the modal. ID: {id(self._ctx)}')
+        args = [self._ctx.bot.user.mention]
+        message = None
+        try:
+            async with sessionmaker.begin() as session:
+                sql_guild = await Guild.get_or_create(session, interaction.guild_id)
+                if sql_guild.welcome_channel_id:
+                    args.append(sql_guild.mention_welcome)
+                try:
+                    message = self.template_message.format(self.text.format(*args))
+                    sql_guild.welcome_message = self.text
+                    logger.info(f'{interaction.user} set the welcome message to, ID: {id(self._ctx)}\n{self.text}')
+                    response = (
+                        'Successfully changed the welcome message! '
+                        'See the previous message for the new sample welcome '
+                        'message with the changes you made! '
+                    )
+                except (IndexError, KeyError) as error:
+                    response = (
+                        "Uh oh! It looks like your message contained some strange usage "
+                        "of the curly braces. Try using at most two sets of curly braces. "
+                        "If this is a persistant issue please reach out to the bot developer. "
+                    )
+                    logger.warning(
+                        f'{interaction.user} tried to set the welcome message but failed. '
+                        f'ID: {id(self._ctx)} The welcome message was:\n{self.text}',
+                        exc_info=error
+                    )
+
+            if message is not None:
+                await self._ctx.interaction.edit_original_message(content=message)
+
+            response += (
+                'This message **will automatically be deleted in 1 minute** to avoid too much cluter.'
+            )
+            await interaction.response.send_message(response)
+            await interaction.delete_original_message(delay=60)
+        except Exception as error:
+            # NOTE: Pycord doesn't support on_error in Modals so have to use a giant try-except block 🙄
+            logger.error(f"The following error occured in modal associated with ID: {id(self._ctx)}:", exc_info=error)
+            await interaction.response.send_message("Uh oh! Something went wrong on our end. Please try again later!")
 
 sentinel = object()
 
