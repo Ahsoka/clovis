@@ -13,6 +13,12 @@ logger = logging.getLogger(__name__)
 
 @bot.event
 async def on_ready():
+    # NOTE: There is an issue with the database being accessed before the database has been created.
+    # This only happens whenever one of the listener functions try to retrieve data before the
+    # database has been created. This is very rare occurences and is most likely to occur in testing
+    # mode. Could solve this using an asyncio.Event however I would need to add it every spot where the
+    # database might be accessed before the database has been created. Might be worth looking into if
+    # this can be done implicitly, perhaps might be worth creating an issue on SQLAlchemy.
     async with engine.begin() as conn:
         await conn.execute(text('PRAGMA foreign_keys=ON'))
         await conn.run_sync(mapper.metadata.create_all)
