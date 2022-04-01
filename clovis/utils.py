@@ -3,11 +3,14 @@ from discord.ext.commands import Converter, BadArgument
 from datetime import datetime, timedelta
 from typing import Dict, Set, List, Any
 from more_itertools import chunked
+from bs4 import BeautifulSoup
 
 from . import sessionmaker
 from .tables import Guild
 
+import dataclasses
 import functools
+import aiohttp
 import asyncio
 import discord
 import pathlib
@@ -65,6 +68,85 @@ class TimeZoneConverter(Converter):
         bad_argument = BadArgument(f"'{argument}' is not a valid timezone.")
         bad_argument.bad_argument = argument
         raise bad_argument
+
+
+@dataclasses.dataclass
+class When2Meet:
+    event_name: str
+    no_earlier_than: int
+    no_later_than: int
+    timezone: str
+    possible_dates: List[datetime] = dataclasses.field(default_factory=list)
+
+    def format(self, *args, **kwargs):
+        return dataclasses.replace(
+            self,
+            event_name=self.event_name.format(*args, **kwargs)
+        )
+
+    def create_embed(self):
+        # embed = discord.Embed(title=f"{event_name} When2Meet", url=url)
+        embed = discord.Embed()
+        embed.add_field(name='Event Name', value=self.event_name)
+        embed.add_field(
+            name='Earliest Time',
+            value=format(datetime.min.replace(hour=self.no_earlier_than), '%I %p'),
+            # inline=False
+        )
+        embed.add_field(
+            name='Latest Time',
+            value=format(datetime.min.replace(hour=self.no_later_than), '%I %p')
+        )
+        if len(self.possible_dates) > 1:
+            max_format_code = '%A'
+            max_date = max(self.possible_dates)
+            min_date = min(self.possible_dates)
+            if max_date - min_date >= timedelta(days=7):
+                max_format_code = '%A %m/%d'
+            embed.add_field(
+                name='Date Range',
+                value=f"{format(min_date, '%A')} - {format(max_date, max_format_code)}"
+            )
+        else:
+            embed.add_field(
+                name='Date',
+                value=format(list(self.possible_dates)[0], '%A %m/%d'),
+            )
+        embed.add_field(name='Time Zone', value=self.timezone)
+
+        return embed
+
+    def create_payload(self, possible_dates: bool = True):
+        payload = {
+            'NewEventName': self.event_name,
+            'DateTypes': 'SpecificDates',
+            'NoEarlierThan': self.no_earlier_than,
+            'NoLaterThan': self.no_later_than,
+            'TimeZone': self.timezone
+        }
+        if possible_dates:
+            payload['PossibleDates'] = '|'.join(
+                map(lambda date: format(date, '%Y-%m-%d'), self.possible_dates)
+            )
+
+        return payload
+
+    async def create_event(self):
+        async with aiohttp.request(
+            'POST',
+            'https://www.when2meet.com/SaveNewEvent.php',
+            data=self.create_payload()
+        ) as resp:
+            resp.raise_for_status()
+            soup = BeautifulSoup(await resp.text(), 'html.parser')
+        try:
+            return f"https://www.when2meet.com/{soup.body['onload'].split('/')[-1][:-1]}"
+        except (KeyError, IndexError) as error:
+            raise HTMLChangeError(
+                'The when2meet HTML code has changed! '
+                'You need to update this portion of code '
+                'to be able to analyze the new HTML.'
+            ) from error
 
 
 class When2MeetPaginator(Paginator):
@@ -158,54 +240,14 @@ class When2MeetPaginator(Paginator):
         commands.info(f"{interaction.user} submitted the paginator. ID: {id(self)}")
         self.ready.set()
 
-    def create_embed(self, event_name: str, timezone: str):
-        payload = self.create_payload(event_name, timezone, possible_dates=False)
-
-        # embed = discord.Embed(title=f"{event_name} When2Meet", url=url)
-        embed = discord.Embed()
-        embed.add_field(name='Event Name', value=event_name)
-        embed.add_field(
-            name='Earliest Time',
-            value=format(datetime.min.replace(hour=payload['NoEarlierThan']), '%I %p'),
-            # inline=False
+    def create_when2meet(self, event_name: str, timezone: str):
+        return When2Meet(
+            event_name,
+            self.time_select.earliest,
+            self.time_select.latest,
+            timezone,
+            list(self.selected_dates)
         )
-        embed.add_field(
-            name='Latest Time',
-            value=format(datetime.min.replace(hour=payload['NoLaterThan']), '%I %p')
-        )
-        if len(self.selected_dates) > 1:
-            max_format_code = '%A'
-            max_date = max(self.selected_dates)
-            min_date = min(self.selected_dates)
-            if max_date - min_date >= timedelta(days=7):
-                max_format_code = '%A %m/%d'
-            embed.add_field(
-                name='Date Range',
-                value=f"{format(min_date, '%A')} - {format(max_date, max_format_code)}"
-            )
-        else:
-            embed.add_field(
-                name='Date',
-                value=format(list(self.selected_dates)[0], '%A %m/%d'),
-            )
-        embed.add_field(name='Time Zone', value=timezone)
-
-        return embed
-
-    def create_payload(self, event_name: str, timezone: str, possible_dates: bool = True):
-        payload = {
-            'NewEventName': event_name,
-            'DateTypes': 'SpecificDates',
-            'NoEarlierThan': self.time_select.earliest,
-            'NoLaterThan': self.time_select.latest,
-            'TimeZone': timezone
-        }
-        if possible_dates:
-            payload['PossibleDates'] = '|'.join(
-                map(lambda date: format(date, '%Y-%m-%d'), self.selected_dates)
-            )
-
-        return payload
 
     async def goto_page(self, page_number=0) -> discord.Message:
         commands.info(f"Page {page_number} is being requested. ID: {id(self)}")

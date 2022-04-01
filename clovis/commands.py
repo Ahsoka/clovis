@@ -1,6 +1,5 @@
 from discord.commands import Option
 from discord.ext import commands
-from bs4 import BeautifulSoup
 from . import sessionmaker
 from .tables import Guild
 from dateutil import tz
@@ -9,12 +8,10 @@ from .utils import (
     hardened_fetch_channel,
     When2MeetPaginator,
     TimeZoneConverter,
-    HTMLChangeError,
     WelcomeModal,
     autocomplete
 )
 
-import aiohttp
 import discord
 import logging
 
@@ -301,30 +298,15 @@ class CommandsCog(commands.Cog):
         logger.info(f"{ctx.author} used the /create when2meet command. ID: {id(paginator)}")
 
         await paginator.respond(ctx.interaction)
-
         await paginator.ready.wait()
 
-        payload = paginator.create_payload(event_name, timezone)
-        async with aiohttp.request(
-            'POST',
-            'https://www.when2meet.com/SaveNewEvent.php',
-            data=payload
-        ) as resp:
-            resp.raise_for_status()
-            soup = BeautifulSoup(await resp.text(), 'html.parser')
+        when2meet = paginator.create_when2meet(event_name, timezone)
+        url = await when2meet.create_event()
         logger.info(f"The when2meet was successfully created: ID {id(paginator)}")
-        try:
-            url = f"https://www.when2meet.com/{soup.body['onload'].split('/')[-1][:-1]}"
-        except (KeyError, IndexError) as error:
-            raise HTMLChangeError(
-                'The when2meet HTML code has changed! '
-                'You need to update this portion of code '
-                'to be able to analyze the new HTML.'
-            ) from error
 
         await ctx.interaction.edit_original_message(
             content=None,
-            embed=paginator.create_embed(event_name, timezone),
+            embed=when2meet.create_embed(),
             view=discord.ui.View(discord.ui.Button(label='When2Meet', url=url))
         )
 
@@ -384,15 +366,12 @@ class CommandsCog(commands.Cog):
 
             async with sessionmaker.begin() as session:
                 sql_guild = await Guild.get_or_create(session, ctx.guild_id)
+
+                when2meet = paginator.create_when2meet(event_name, timezone)
+
                 sql_guild.when2meet_category_id = category.id
-                sql_guild.when2meet_structure = paginator.create_payload(
-                    event_name,
-                    timezone,
-                    possible_dates=False
-                )
-                sql_guild.when2meet_days = list(
-                    map(lambda date: format(date, '%a')[:2].upper(), paginator.selected_dates)
-                )
+                sql_guild.when2meet_structure = when2meet.create_payload(possible_dates=False)
+                sql_guild.when2meet_days = when2meet.possible_dates
 
             logger.info(f'{ctx.author} successfully set the when2meet structure, category id, and days. ID: {id(paginator)}')
 
@@ -401,7 +380,7 @@ class CommandsCog(commands.Cog):
                     "The following is a sample of a when2meet that will be generated "
                     f"when you move a channel into the {category.mention} category."
                 ),
-                embed=paginator.create_embed(event_name.format(ctx.bot.user.name), timezone),
+                embed=when2meet.format(ctx.bot.user.name).create_embed(),
                 view=None
             )
         except (IndexError, ValueError, KeyError) as error:
