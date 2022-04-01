@@ -115,6 +115,10 @@ class When2Meet:
 
         return embed
 
+    @staticmethod
+    def create_view(url: str, button_label: str = 'When2Meet'):
+        return discord.ui.View(discord.ui.Button(label=button_label, url=url))
+
     def create_payload(self, possible_dates: bool = True):
         payload = {
             'NewEventName': self.event_name,

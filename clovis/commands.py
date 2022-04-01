@@ -307,7 +307,7 @@ class CommandsCog(commands.Cog):
         await ctx.interaction.edit_original_message(
             content=None,
             embed=when2meet.create_embed(),
-            view=discord.ui.View(discord.ui.Button(label='When2Meet', url=url))
+            view=when2meet.create_view(url)
         )
 
     @when2meet_command.command(
