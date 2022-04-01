@@ -1,7 +1,9 @@
+from dateutil.relativedelta import relativedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from .utils import hardened_fetch_channel
 from . import sessionmaker, engine
 from .tables import Guild, mapper
+from datetime import datetime
 from sqlalchemy import text
 from .bot import bot
 
@@ -214,6 +216,55 @@ async def on_member_update(before: discord.Member, after: discord.Member):
                     "it may be because they are an admin and do not have one.",
                     exc_info=error
                 )
+
+@bot.event
+async def on_guild_channel_update(before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
+    if isinstance(after, discord.TextChannel) and after.category and before.category != after.category:
+        logger.debug(f'The {after} channel was updated in {after.guild}!')
+        async with sessionmaker.begin() as session:
+            sql_guild = await Guild.get_or_create(session, after.guild.id)
+            if sql_guild.when2meet_category_id:
+                category = await hardened_fetch_channel(sql_guild.when2meet_category_id, after.guild, None)
+                if category:
+                    logger.info(
+                        f'Detected the when2meet_category_id as a valid category '
+                        f'in the {after.guild} server.'
+                    )
+                    if after.category.id == sql_guild.when2meet_category_id:
+                        when2meet = sql_guild.when2meet.format(after.name)
+                        when2meet.possible_dates = list(
+                            map(
+                                lambda date: datetime.today() + relativedelta(
+                                    weekday=date.weekday()
+                                ),
+                                sql_guild.when2meet.possible_dates
+                            )
+                        )
+                        url = await when2meet.create_event()
+                        logger.info(
+                            f'Successfully created the when2meet for the #{after} channel.'
+                        )
+                        await after.send(
+                            embed=when2meet.create_embed(),
+                            view=when2meet.create_view(url)
+                        )
+                        logger.info(
+                            f'Successfully sent message for the when2meet in the #{after} channel.'
+                        )
+                else:
+                    message = (
+                        "Detected the when2meet_category_id as an "
+                        f"invalid category in the {after.guild} server."
+                    )
+                    sql_guild.when2meet_category_id = None
+                    if after.guild.owner:
+                        await after.guild.owner.send(
+                            'The category for automatically creating when2meets '
+                            'has been deleted! Please set a new one with the `/set when2meet '
+                            'category` command.'
+                        )
+                        message += " Notified the owner about the issue."
+                    logger.warning(message)
 
 @bot.event
 async def on_error(event: str, *args, **kwargs):
