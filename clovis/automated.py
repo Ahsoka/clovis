@@ -231,7 +231,7 @@ async def on_guild_channel_update(before: discord.abc.GuildChannel, after: disco
                         f'in the {after.guild} server.'
                     )
                     if after.category.id == sql_guild.when2meet_category_id:
-                        when2meet = sql_guild.when2meet.format(after.name)
+                        when2meet = sql_guild.when2meet.format(after.name.replace('-', ' ').title())
                         when2meet.possible_dates = list(
                             map(
                                 lambda date: datetime.today() + relativedelta(
