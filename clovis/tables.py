@@ -25,8 +25,7 @@ class Guild:
     )
     create_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     when2meet_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
-    when2meet_structure: dict = field(default=None, metadata={'sa': Column(MutableDict.as_mutable(PickleType))})
-    when2meet_days: list = field(default=None, metadata={'sa': Column(MutableList.as_mutable(PickleType))})
+    when2meet: 'When2Meet' = field(default=None, metadata={'sa': Column(PickleType)})
     welcome_message: str = field(default=default_message, metadata={'sa': Column(String(4000))})
     welcome_channel_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     last_message_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
@@ -49,3 +48,5 @@ class Guild:
         guild = cls(id=guild_id)
         session.add(guild)
         return guild
+
+from .utils import When2Meet

@@ -364,16 +364,15 @@ class CommandsCog(commands.Cog):
             await paginator.respond(ctx.interaction)
             await paginator.ready.wait()
 
+            when2meet = paginator.create_when2meet(event_name, timezone)
             async with sessionmaker.begin() as session:
                 sql_guild = await Guild.get_or_create(session, ctx.guild_id)
-
-                when2meet = paginator.create_when2meet(event_name, timezone)
-
                 sql_guild.when2meet_category_id = category.id
-                sql_guild.when2meet_structure = when2meet.create_payload(possible_dates=False)
-                sql_guild.when2meet_days = when2meet.possible_dates
+                sql_guild.when2meet = when2meet
 
-            logger.info(f'{ctx.author} successfully set the when2meet structure, category id, and days. ID: {id(paginator)}')
+            logger.info(
+                f'{ctx.author} successfully set the when2meet and category id in the DB. ID: {id(paginator)}'
+            )
 
             await ctx.interaction.edit_original_message(
                 content=(

@@ -6,7 +6,6 @@ from more_itertools import chunked
 from bs4 import BeautifulSoup
 
 from . import sessionmaker
-from .tables import Guild
 
 import dataclasses
 import functools
@@ -520,3 +519,5 @@ async def autocomplete_timezones(ctx: discord.AutocompleteContext):
 
     autocomplete_logger.info(message.format(time.perf_counter() - start) + pprint.pformat(starting))
     return starting
+
+from .tables import Guild
