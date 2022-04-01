@@ -1,4 +1,5 @@
-from sqlalchemy import Column, BigInteger, Boolean, String
+from sqlalchemy import Column, BigInteger, Boolean, String, PickleType
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.decl_api import registry
 from dataclasses import dataclass, field
@@ -23,6 +24,9 @@ class Guild:
         }
     )
     create_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
+    when2meet_category_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
+    when2meet_structure: dict = field(default=None, metadata={'sa': Column(MutableDict.as_mutable(PickleType))})
+    when2meet_days: list = field(default=None, metadata={'sa': Column(MutableList.as_mutable(PickleType))})
     welcome_message: str = field(default=default_message, metadata={'sa': Column(String(4000))})
     welcome_channel_id: int = field(default=None, metadata={'sa': Column(BigInteger)})
     last_message_id: int = field(default=None, metadata={'sa': Column(BigInteger)})

@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from discord.commands import Option
 from discord.ext import commands
 from bs4 import BeautifulSoup
@@ -30,6 +29,10 @@ class CommandsCog(commands.Cog):
     welcome_set_command = set_commands.create_subgroup(
         'welcome',
         'Command used for setting the welcome channel.'
+    )
+    when2meet_command = set_commands.create_subgroup(
+        'when2meet',
+        'Command used to configure the auto when2meet feature.'
     )
 
     get_commands = discord.SlashCommandGroup(
@@ -325,7 +328,95 @@ class CommandsCog(commands.Cog):
             view=discord.ui.View(discord.ui.Button(label='When2Meet', url=url))
         )
 
+    @when2meet_command.command(
+        name='category',
+        description="Use this command to create a when2meet.",
+        options=[
+            Option(
+                str,
+                name='template-event-name',
+                description=(
+                    "Use this to set the template event name, "
+                    "use {} as placeholder for the person's name."
+                )
+            ),
+            Option(
+                discord.CategoryChannel,
+                name="category",
+                description="Use this to set the category for where automatic when2meets will be created."
+            ),
+            Option(
+                TimeZoneConverter,
+                name='timezone',
+                description=(
+                    'Use this to set the timezone, '
+                    'by default the timezone is Pacific Standard Time.'
+                ),
+                autocomplete=autocomplete_timezones if autocomplete else None,
+                required=False
+            )
+        ]
+    )
+    async def set_when2meet_category(
+        self,
+        ctx: discord.ApplicationContext,
+        event_name: str,
+        category: discord.CategoryChannel,
+        timezone: str = None
+    ):
+        try:
+            # NOTE: Test to see if their message is valid.
+            event_name.format('')
+
+            if timezone is None:
+                timezone = 'America/Los_Angeles'
+
+            paginator = When2MeetPaginator(
+                [
+                    '📅 Select One or Multiple Dates:',
+                    '⏰ Select a Start and End Time:'
+                ],
+                tz.gettz(timezone)
+            )
+            logger.info(f"{ctx.author} used the /set when2meet category command. ID: {id(paginator)}")
+            await paginator.respond(ctx.interaction)
+            await paginator.ready.wait()
+
+            async with sessionmaker.begin() as session:
+                sql_guild = await Guild.get_or_create(session, ctx.guild_id)
+                sql_guild.when2meet_category_id = category.id
+                sql_guild.when2meet_structure = paginator.create_payload(
+                    event_name,
+                    timezone,
+                    possible_dates=False
+                )
+                sql_guild.when2meet_days = list(
+                    map(lambda date: format(date, '%a')[:2].upper(), paginator.selected_dates)
+                )
+
+            logger.info(f'{ctx.author} successfully set the when2meet structure, category id, and days. ID: {id(paginator)}')
+
+            await ctx.interaction.edit_original_message(
+                content=(
+                    "The following is a sample of a when2meet that will be generated "
+                    f"when you move a channel into the {category.mention} category."
+                ),
+                embed=paginator.create_embed(event_name.format(ctx.bot.user.name), timezone),
+                view=None
+            )
+        except (IndexError, ValueError, KeyError) as error:
+            logger.warning(
+                f'{ctx.author} failed to use the /set when2meet category command '
+                f'because they used the invalid template-event-name {event_name!r}.',
+                exc_info=error
+            )
+            await ctx.respond(
+                'Uh oh! It looks like your template-event-name is invalid. '
+                'Please make sure you have only one pair of curly braces in your message.'
+            )
+
     @create_when2meet.error
+    @set_when2meet_category.error
     async def handle_create_when2meet_error(
         self,
         ctx: discord.ApplicationContext,
