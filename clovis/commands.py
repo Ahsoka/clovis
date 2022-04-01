@@ -423,6 +423,10 @@ class CommandsCog(commands.Cog):
         error: discord.ApplicationCommandInvokeError
     ):
         if isinstance(error.original, commands.BadArgument):
+            logging.warning(
+                f'{ctx.author} tried to use the /{ctx.command.qualified_name} '
+                f'however failed to do so because they inputted the invalid timezone {error.bad_argument!r}.'
+            )
             await ctx.respond(
                 f"You selected an invalid timezone: '{error.original.bad_argument}'. "
                 "Please select a valid timezone from the given options."
