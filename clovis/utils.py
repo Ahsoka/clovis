@@ -159,7 +159,7 @@ class When2MeetPaginator(Paginator):
         self.ready.set()
 
     def create_embed(self, event_name: str, timezone: str):
-        payload = self.create_payload(event_name, timezone)
+        payload = self.create_payload(event_name, timezone, possible_dates=False)
 
         # embed = discord.Embed(title=f"{event_name} When2Meet", url=url)
         embed = discord.Embed()
@@ -192,17 +192,20 @@ class When2MeetPaginator(Paginator):
 
         return embed
 
-    def create_payload(self, event_name: str, timezone: str):
-        return {
+    def create_payload(self, event_name: str, timezone: str, possible_dates: bool = True):
+        payload = {
             'NewEventName': event_name,
             'DateTypes': 'SpecificDates',
-            'PossibleDates': '|'.join(
-                map(lambda date: format(date, '%Y-%m-%d'), self.selected_dates)
-            ),
             'NoEarlierThan': self.time_select.earliest,
             'NoLaterThan': self.time_select.latest,
             'TimeZone': timezone
         }
+        if possible_dates:
+            payload['PossibleDates'] = '|'.join(
+                map(lambda date: format(date, '%Y-%m-%d'), self.selected_dates)
+            )
+
+        return payload
 
     async def goto_page(self, page_number=0) -> discord.Message:
         commands.info(f"Page {page_number} is being requested. ID: {id(self)}")
