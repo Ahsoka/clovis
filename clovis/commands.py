@@ -172,6 +172,7 @@ class CommandsCog(commands.Cog):
     )
     @commands.has_guild_permissions(administrator=True)
     async def set_welcome_message(self, ctx: discord.ApplicationContext):
+        # TODO: Disable Edit Message button on timeout.
         logger.info(f"{ctx.author} used the /set welcome message command. ID: {id(ctx)}")
         async def edit_button_callback(interaction: discord.Interaction):
             logger.info(f'{interaction.user} clicked the Edit Message button. ID: {id(ctx)}')
@@ -210,7 +211,7 @@ class CommandsCog(commands.Cog):
 
             await ctx.respond(
                 edit_button.og_message.format(sql_guild.welcome_message.format(*args)),
-                view=discord.ui.View(edit_button)
+                view=discord.ui.View(edit_button, timeout=None)
             )
 
     @start_commands.command(
