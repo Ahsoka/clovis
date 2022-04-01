@@ -391,7 +391,7 @@ class WelcomeModal(discord.ui.Modal):
                         'See the previous message for the new sample welcome '
                         'message with the changes you made! '
                     )
-                except (IndexError, KeyError) as error:
+                except (IndexError, ValueError, KeyError) as error:
                     response = (
                         "Uh oh! It looks like your message contained some strange usage "
                         "of the curly braces. Try using at most two sets of curly braces. "
