@@ -395,7 +395,7 @@ class CommandsCog(commands.Cog):
 
     @create_when2meet.error
     @set_when2meet_category.error
-    async def handle_create_when2meet_error(
+    async def handle_invalid_timezone_error(
         self,
         ctx: discord.ApplicationContext,
         error: discord.ApplicationCommandInvokeError
