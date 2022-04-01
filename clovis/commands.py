@@ -319,36 +319,11 @@ class CommandsCog(commands.Cog):
                 'to be able to analyze the new HTML.'
             ) from error
 
-        view = discord.ui.View(discord.ui.Button(label='When2Meet', url=url))
-        # embed = discord.Embed(title=f"{event_name} When2Meet", url=url)
-        embed = discord.Embed()
-        embed.add_field(name='Event Name', value=event_name)
-        embed.add_field(
-            name='Earliest Time',
-            value=format(datetime.min.replace(hour=payload['NoEarlierThan']), '%I %p'),
-            # inline=False
+        await ctx.interaction.edit_original_message(
+            content=None,
+            embed=paginator.create_embed(event_name, timezone),
+            view=discord.ui.View(discord.ui.Button(label='When2Meet', url=url))
         )
-        embed.add_field(
-            name='Latest Time',
-            value=format(datetime.min.replace(hour=payload['NoLaterThan']), '%I %p')
-        )
-        if len(paginator.selected_dates) > 1:
-            max_format_code = '%A'
-            max_date = max(paginator.selected_dates)
-            min_date = min(paginator.selected_dates)
-            if max_date - min_date >= timedelta(days=7):
-                max_format_code = '%A %m/%d'
-            embed.add_field(
-                name='Date Range',
-                value=f"{format(min_date, '%A')} - {format(max_date, max_format_code)}"
-            )
-        else:
-            embed.add_field(
-                name='Date',
-                value=format(list(paginator.selected_dates)[0], '%A %m/%d'),
-            )
-        embed.add_field(name='Time Zone', value=timezone)
-        await ctx.interaction.edit_original_message(content=None, embed=embed, view=view)
 
     @create_when2meet.error
     async def handle_create_when2meet_error(

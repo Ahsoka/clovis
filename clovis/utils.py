@@ -158,6 +158,40 @@ class When2MeetPaginator(Paginator):
         commands.info(f"{interaction.user} submitted the paginator. ID: {id(self)}")
         self.ready.set()
 
+    def create_embed(self, event_name: str, timezone: str):
+        payload = self.create_payload(event_name, timezone)
+
+        # embed = discord.Embed(title=f"{event_name} When2Meet", url=url)
+        embed = discord.Embed()
+        embed.add_field(name='Event Name', value=event_name)
+        embed.add_field(
+            name='Earliest Time',
+            value=format(datetime.min.replace(hour=payload['NoEarlierThan']), '%I %p'),
+            # inline=False
+        )
+        embed.add_field(
+            name='Latest Time',
+            value=format(datetime.min.replace(hour=payload['NoLaterThan']), '%I %p')
+        )
+        if len(self.selected_dates) > 1:
+            max_format_code = '%A'
+            max_date = max(self.selected_dates)
+            min_date = min(self.selected_dates)
+            if max_date - min_date >= timedelta(days=7):
+                max_format_code = '%A %m/%d'
+            embed.add_field(
+                name='Date Range',
+                value=f"{format(min_date, '%A')} - {format(max_date, max_format_code)}"
+            )
+        else:
+            embed.add_field(
+                name='Date',
+                value=format(list(self.selected_dates)[0], '%A %m/%d'),
+            )
+        embed.add_field(name='Time Zone', value=timezone)
+
+        return embed
+
     def create_payload(self, event_name: str, timezone: str):
         return {
             'NewEventName': event_name,
