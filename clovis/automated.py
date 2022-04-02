@@ -7,23 +7,23 @@ from datetime import datetime
 from sqlalchemy import text
 from .bot import bot
 
+import asyncio
 import discord
 import logging
 import sys
 
 logger = logging.getLogger(__name__)
 
+db_created = asyncio.Event()
+
 @bot.event
 async def on_ready():
-    # NOTE: There is an issue with the database being accessed before the database has been created.
-    # This only happens whenever one of the listener functions try to retrieve data before the
-    # database has been created. This is very rare occurences and is most likely to occur in testing
-    # mode. Could solve this using an asyncio.Event however I would need to add it every spot where the
-    # database might be accessed before the database has been created. Might be worth looking into if
-    # this can be done implicitly, perhaps might be worth creating an issue on SQLAlchemy.
+    # NOTE: It cannot be done using SQLAlchemy, a custom implementation is needed.
+    # See here: https://github.com/sqlalchemy/sqlalchemy/discussions/7883#discussioncomment-2485436
     async with engine.begin() as conn:
         await conn.execute(text('PRAGMA foreign_keys=ON'))
         await conn.run_sync(mapper.metadata.create_all)
+    db_created.set()
     logger.info(f"{bot.user} is ready!")
 
 @bot.event
@@ -172,6 +172,7 @@ async def on_guild_role_update(before: discord.Role, after: discord.Role):
 
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
+    await db_created.wait()
     async with sessionmaker.begin() as session:
         sql_guild = await Guild.get_or_create(session, after.guild.id)
         if not after.bot and before.nick != after.nick and sql_guild.create_category_id:
