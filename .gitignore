@@ -12,3 +12,6 @@ env
 
 # VSCode Config Folder
 .vscode
+
+# MacOS Folder Config
+.DS_Store
